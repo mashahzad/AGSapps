@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
@@ -24,6 +25,7 @@ class ParentKidApp extends StatelessWidget {
         '/description': (context) => const DescriptionScreen(),
         '/login': (context) => const LoginScreen(),
         '/family': (context) => const FamilyScreen(),
+        '/parent_dashboard': (context) => const ParentDashboardScreen(),
         '/kid_dashboard': (context) => const KidDashboardScreen(),
         '/activities': (context) => const ActivitiesScreen(),
         '/qna': (context) => const QnAScreen(),
@@ -47,9 +49,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto navigate to Description Screen after 3 seconds
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, '/description');
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/description');
+      }
     });
   }
 
@@ -58,15 +61,6 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          /*// 1. Background Image
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/background.jpg',
-              fit: BoxFit.cover,
-            ),
-          ),*/
-
-          // 2. Centered Content (Logo & Text)
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -76,6 +70,8 @@ class _SplashScreenState extends State<SplashScreen> {
                   width: 200,
                   height: 200,
                   fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.child_care, size: 100, color: Colors.indigo),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -96,31 +92,86 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 
 // ==========================================
-// 1.5 DESCRIPTION SCREEN (NEW)
+// 1.5 DESCRIPTION SCREEN
 // ==========================================
-class DescriptionScreen extends StatelessWidget {
+class DescriptionScreen extends StatefulWidget {
   const DescriptionScreen({Key? key}) : super(key: key);
+
+  @override
+  State<DescriptionScreen> createState() => _DescriptionScreenState();
+}
+
+class _DescriptionScreenState extends State<DescriptionScreen> {
+  bool _isAccepted = false;
+  late TapGestureRecognizer _termsGestureRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _termsGestureRecognizer = TapGestureRecognizer()..onTap = _showTermsDialog;
+  }
+
+  @override
+  void dispose() {
+    _termsGestureRecognizer.dispose();
+    super.dispose();
+  }
+
+  void _showTermsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "Terms & Conditions",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo),
+          ),
+          content: const SingleChildScrollView(
+            child: Text(
+              "Welcome to Kids Growth Journal!\n\n"
+                  "1. Privacy First: All growth records, photos, and personal notes are kept strictly private and secure.\n\n"
+                  "2. Data Responsibility: Users are responsible for maintaining backup copies of their media.\n\n"
+                  "3. Content Usage: Features such as AI advice are for general informational purposes only and do not replace professional medical care.\n\n"
+                  "4. User Conduct: Ensure all added content respects child privacy and family guidelines.",
+              style: TextStyle(fontSize: 14, height: 1.4),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Close", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
               'assets/images/background.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: Colors.indigo.shade50),
             ),
           ),
-
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
               child: Container(
                 padding: const EdgeInsets.all(20.0),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withOpacity(0.92),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -213,20 +264,60 @@ class DescriptionScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _isAccepted,
+                          activeColor: Colors.indigo,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _isAccepted = value ?? false;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              text: "I accept the ",
+                              style: const TextStyle(fontSize: 13, color: Colors.black87),
+                              children: [
+                                TextSpan(
+                                  text: "Terms and Conditions",
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.indigo,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  recognizer: _termsGestureRecognizer,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.indigo,
+                          disabledBackgroundColor: Colors.grey.shade400,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: () {
+                        onPressed: _isAccepted
+                            ? () {
                           Navigator.pushReplacementNamed(context, '/login');
-                        },
+                        }
+                            : null,
                         child: const Text(
                           "Start recording these moments!",
                           style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
@@ -254,7 +345,7 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Lets Begin"),
+        title: const Text("Let's Begin"),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -265,6 +356,8 @@ class LoginScreen extends StatelessWidget {
             child: Image.asset(
               'assets/images/background.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: Colors.grey.shade100),
             ),
           ),
           SafeArea(
@@ -278,7 +371,7 @@ class LoginScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withOpacity(0.9),
                       border: Border.all(color: Colors.red, width: 2),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -292,26 +385,28 @@ class LoginScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const Spacer(),
                   const SizedBox(height: 40),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       side: const BorderSide(color: Colors.green, width: 2),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.white.withOpacity(0.8),
+                      backgroundColor: Colors.white.withOpacity(0.9),
                     ),
                     onPressed: () {
                       Navigator.pushReplacementNamed(context, '/family');
                     },
                     child: const Text(
                       "Record Your Memories",
-                      style: TextStyle(fontSize: 16, color: Colors.green),
+                      style: TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 20),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.green, width: 2),
-                      backgroundColor: Colors.white.withOpacity(0.8),
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -320,15 +415,16 @@ class LoginScreen extends StatelessWidget {
                     },
                     child: const Text(
                       "Admin",
-                      style: TextStyle(fontSize: 16, color: Colors.green),
+                      style: TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.bold),
                     ),
                   ),
+                  const Spacer(),
                   const Text(
                     "Proudly made in Singapore",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
-                      color: Colors.black54,
+                      color: Colors.black87,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -342,9 +438,6 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-// ==========================================
-// 3. MY FAMILY SCREEN (ME / My Kids Tabs)
-// ==========================================
 // ==========================================
 // 3. MY FAMILY SCREEN (ME / My Kids Tabs)
 // ==========================================
@@ -368,19 +461,23 @@ class FamilyScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            const Center(child: Text("Parent Profile & Personal Info Details")),
+            // Tab 1: Me & My Spouse
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  // Replaced Icon with JPG Image asset from assets/images
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(12), // Optional rounded corners
+                    borderRadius: BorderRadius.circular(12),
                     child: Image.asset(
-                      'assets/images/background.jpg', // Replace 'background.jpg' with your image file name
+                      'assets/images/background.jpg',
                       height: 150,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 150,
+                        color: Colors.indigo.shade100,
+                        child: const Icon(Icons.people, size: 60, color: Colors.indigo),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -390,10 +487,92 @@ class FamilyScreen extends StatelessWidget {
                         Card(
                           elevation: 3,
                           child: ListTile(
-                            leading: const CircleAvatar(child: Icon(Icons.child_care)),
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.indigo,
+                              child: Icon(Icons.person, color: Colors.white),
+                            ),
+                            title: const Text("John Doe (Father)"),
+                            subtitle: const Text("Tap to view records & details"),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/parent_dashboard',
+                                arguments: {
+                                  "name": "John Doe",
+                                  "relation": "Father",
+                                  "work": "Software Engineer at TechCorp",
+                                  "phone": "+65 9123 4567",
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          elevation: 3,
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.pink,
+                              child: Icon(Icons.person_4, color: Colors.white),
+                            ),
+                            title: const Text("Jane Doe (Mother)"),
+                            subtitle: const Text("Tap to view records & details"),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/parent_dashboard',
+                                arguments: {
+                                  "name": "Jane Doe",
+                                  "relation": "Mother",
+                                  "work": "Architect at DesignStudio",
+                                  "phone": "+65 9876 5432",
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Tab 2: My Kids
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/images/background.jpg',
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 150,
+                        color: Colors.indigo.shade100,
+                        child: const Icon(Icons.family_restroom, size: 60, color: Colors.indigo),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        Card(
+                          elevation: 3,
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.indigo,
+                              child: Icon(Icons.child_care, color: Colors.white),
+                            ),
                             title: const Text("Leo (Age: 5)"),
                             subtitle: const Text("Tap to view records & activities"),
-                            trailing: const Icon(Icons.arrow_forward_ios),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                             onTap: () {
                               Navigator.pushNamed(
                                 context,
@@ -409,6 +588,153 @@ class FamilyScreen extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 3.5 PARENT DASHBOARD (NEW)
+// ==========================================
+class ParentDashboardScreen extends StatefulWidget {
+  const ParentDashboardScreen({Key? key}) : super(key: key);
+
+  @override
+  State<ParentDashboardScreen> createState() => _ParentDashboardScreenState();
+}
+
+class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
+  final PageController _pageController = PageController();
+
+  @override
+  Widget build(BuildContext context) {
+    final parentData = ModalRoute.of(context)?.settings.arguments as Map<String, String>? ??
+        {
+          "name": "Parent",
+          "relation": "Guardian",
+          "work": "Not specified",
+          "phone": "Not specified",
+        };
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("${parentData['name']}'s Dashboard"),
+      ),
+      body: PageView(
+        controller: _pageController,
+        children: [
+          _buildMainOverviewPage(context, parentData),
+          _buildManageParentDataPage(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainOverviewPage(BuildContext context, Map<String, String> data) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Card(
+            color: Colors.indigo.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.person, size: 40, color: Colors.indigo),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      "Name: ${data['name']}\nRole: ${data['relation']}\nOccupation: ${data['work']}\nContact: ${data['phone']}",
+                      style: const TextStyle(fontSize: 13, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton(
+              onPressed: () {
+                _pageController.animateToPage(
+                  1,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+              child: const Text("View details"),
+            ),
+          ),
+          const Divider(height: 30),
+          const Text(
+            "Schedules & Reminders",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Key tasks, office meetings, and family events from your calendar",
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView(
+              children: const [
+                ListTile(
+                  leading: Icon(Icons.business_center, color: Colors.indigo, size: 20),
+                  title: Text("Parent-Teacher Conference"),
+                  subtitle: Text("Friday at 3:00 PM"),
+                ),
+                ListTile(
+                  leading: Icon(Icons.directions_car, color: Colors.orange, size: 20),
+                  title: Text("Car Servicing"),
+                  subtitle: Text("This Weekend"),
+                ),
+                ListTile(
+                  leading: Icon(Icons.health_and_safety, color: Colors.green, size: 20),
+                  title: Text("Health Insurance Renewal"),
+                  subtitle: Text("Due end of the month"),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManageParentDataPage() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text("Manage Profile Data", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+            Text("Personal Details:", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Full name, NRIC/Passport, Date of Birth, Emergency Contact Numbers"),
+            SizedBox(height: 15),
+            Text("Work Information:", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Company name, Office address, Office phone extension, Working hours"),
+            SizedBox(height: 15),
+            Text("Health & Insurance Details:", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Blood group, Medical conditions, Family health insurance policy info"),
+            SizedBox(height: 15),
+            Text("Responsibilities & Logistics:", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Primary pick-up/drop-off duties for kids, Weekend activity assignments"),
           ],
         ),
       ),
@@ -461,7 +787,7 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
           ),
           SpeedDialChild(
             child: const Icon(Icons.article),
-            label: 'Blog & tips',
+            label: 'Blog & Tips',
             onTap: () => Navigator.pushNamed(context, '/blogs', arguments: kidName),
           ),
         ],
@@ -484,14 +810,17 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                   Container(
                     width: 60,
                     height: 60,
-                    color: Colors.grey.shade300,
-                    child: const Icon(Icons.person, size: 40),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.person, size: 40, color: Colors.grey),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      "Details:\nName: $name\nAge: 5",
-                      style: const TextStyle(fontSize: 13),
+                      "Name: $name\nAge: 5\nCurrently: At school Tampines (8am-4pm)\nNext: Piano classes at Punggol (5pm-7pm)",
+                      style: const TextStyle(fontSize: 13, height: 1.4),
                     ),
                   ),
                 ],
@@ -509,7 +838,7 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                   curve: Curves.easeInOut,
                 );
               },
-              child: const Text("Personal details / Manage details->"),
+              child: const Text("View details"),
             ),
           ),
           const Divider(height: 30),
@@ -517,7 +846,11 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
             "Notifications",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          const Text("Alerts (Appointments, reminders, birthdates)"),
+          const SizedBox(height: 4),
+          Text(
+            "Alerts (Appointments, reminders, birthdates, Events fetched from calendar app)",
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          ),
           const SizedBox(height: 10),
           Expanded(
             child: ListView(
@@ -528,12 +861,12 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                   subtitle: Text("Tomorrow at 10:00 AM"),
                 ),
                 ListTile(
-                  leading: Icon(Icons.circle, color: Colors.red, size: 16),
+                  leading: Icon(Icons.circle, color: Colors.orange, size: 16),
                   title: Text("Vaccination Alert"),
                   subtitle: Text("Due in 5 days"),
                 ),
                 ListTile(
-                  leading: Icon(Icons.circle, color: Colors.red, size: 16),
+                  leading: Icon(Icons.circle, color: Colors.blue, size: 16),
                   title: Text("Birthday Reminder"),
                   subtitle: Text("Next Month"),
                 ),
@@ -554,14 +887,17 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
           children: const [
             Text("Manage Data", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(height: 20),
+            Text("General Details:", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Name, birthdate, nicknames, friends, height and weight, guardian name"),
+            SizedBox(height: 15),
             Text("Health History:", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("Allergies, vaccinations, doctor visits, dosage and medications\n(allergies, hobbies, activities, blood group)"),
+            Text("Medical insurance policy number, Allergies, vaccinations, doctor visits, dosage and medications\n(allergies, hobbies, activities, blood group)"),
             SizedBox(height: 15),
             Text("Likes:", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("Food, sports, hobbies, pets, picnics"),
+            Text("Food, sports, hobbies, pets, picnic spots, places of interest"),
             SizedBox(height: 15),
             Text("Growing:", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("First words, School, achievements by date"),
+            Text("First words, School, achievements by date, co-curricular activities"),
             SizedBox(height: 15),
             Text("Transportation Details:", style: TextStyle(fontWeight: FontWeight.bold)),
             Text("Mode, driver name, usual routes, friends"),
@@ -611,13 +947,13 @@ class QnAScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Q&A / Sponsored content/ parental guide")),
+      appBar: AppBar(title: const Text("Q&A and Tips")),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
           const ListTile(title: Text("What to feed?")),
           const Divider(),
-          const ListTile(title: Text("Allergy advise")),
+          const ListTile(title: Text("Allergy advice")),
           const Divider(),
           const ListTile(title: Text("Doctor connect / gynaecologists (premium)")),
           const Divider(),
@@ -625,7 +961,7 @@ class QnAScreen extends StatelessWidget {
             color: Colors.purple.shade50,
             child: const ListTile(
               leading: Icon(Icons.smart_toy, color: Colors.purple),
-              title: Text("GPT powered advise on trivial everyday things related to kids (chatbot)"),
+              title: Text("GPT powered advice on trivial everyday things related to kids (chatbot)"),
               subtitle: Text("Tap to launch assistant"),
             ),
           ),
@@ -646,7 +982,7 @@ class BlogsScreen extends StatelessWidget {
     final kidName = ModalRoute.of(context)?.settings.arguments as String? ?? "selected kid";
 
     return Scaffold(
-      appBar: AppBar(title: Text("Blogs and tips <$kidName>")),
+      appBar: AppBar(title: Text("Blogs and Tips for $kidName")),
       body: const Center(
         child: Text("Articles & Age-Group tips customized for this age group."),
       ),
