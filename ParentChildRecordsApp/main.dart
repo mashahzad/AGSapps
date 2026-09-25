@@ -21,6 +21,7 @@ class ParentKidApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
+        '/description': (context) => const DescriptionScreen(),
         '/login': (context) => const LoginScreen(),
         '/family': (context) => const FamilyScreen(),
         '/kid_dashboard': (context) => const KidDashboardScreen(),
@@ -46,9 +47,9 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto navigate to Login Screen after 3 seconds
+    // Auto navigate to Description Screen after 3 seconds
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, '/login');
+      Navigator.pushReplacementNamed(context, '/description');
     });
   }
 
@@ -57,24 +58,23 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Background Image
+          /*// 1. Background Image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/background.jpg', // Replace with your background path
+              'assets/images/background.jpg',
               fit: BoxFit.cover,
             ),
-          ),
+          ),*/
 
           // 2. Centered Content (Logo & Text)
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Company Logo JPG
                 Image.asset(
-                  'assets/images/logo.jpg', // Replace with your logo path
-                  width: 100, // Adjust size as needed
-                  height: 100,
+                  'assets/images/logo.jpg',
+                  width: 200,
+                  height: 200,
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 20),
@@ -83,10 +83,159 @@ class _SplashScreenState extends State<SplashScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black, // Change text color if needed for visibility against the background
+                    color: Colors.black,
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 1.5 DESCRIPTION SCREEN (NEW)
+// ==========================================
+class DescriptionScreen extends StatelessWidget {
+  const DescriptionScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/background.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              child: Container(
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: const [
+                            Text(
+                              "“Every child has a story of love, bonding and building in a family.”",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.indigo,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              "Capture it. Preserve it. Treasure it.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.deepOrange,
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              "They grow up faster than we realise.\n"
+                                  "One day you're celebrating their first steps.\n"
+                                  "Then their first day of school. Their first drawing, first bicycle ride, first swimming lesson, first trophy, first best friend.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, height: 1.5),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              "Kids Growth Journal helps you keep it all.\n"
+                                  "One beautiful, private place to capture your child's growth, learning, interests, achievements, health milestones and the memories that matter most.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, height: 1.5, fontWeight: FontWeight.w500),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              "Record the moments as they happen. Add a photo. Write a few words. Save a milestone. Track how they're growing.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, height: 1.5),
+                            ),
+                            SizedBox(height: 20),
+                            Divider(),
+                            SizedBox(height: 16),
+                            Text(
+                              "Celebrate what they've learned and the things they're beginning to love.\n\n"
+                                  "Over time, those individual moments become something much more meaningful:\n"
+                                  "the story of your child's childhood &\nthe bond you shared with your child.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, height: 1.5, fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(height: 20),
+                            Divider(),
+                            SizedBox(height: 16),
+                            Text(
+                              "Watch their story unfold.\n"
+                                  "See how they grow.\n"
+                                  "See what they learn.\n"
+                                  "See how their interests change.\n"
+                                  "See what makes them smile.\n"
+                                  "See how far they've come.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, height: 1.6, color: Colors.indigo),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              "And when you look back, don't just see a collection of photographs.\n"
+                                  "See the journey.\n"
+                                  "From today's little moments to tomorrow's treasured memories.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, height: 1.5, fontStyle: FontStyle.italic),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, '/login');
+                        },
+                        child: const Text(
+                          "Start recording these moments!",
+                          style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -104,46 +253,32 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Make the app bar transparent so the background shows through
       appBar: AppBar(
-        title: const Text("Login page"),
+        title: const Text("Lets Begin"),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      // Extend the body behind the transparent app bar if you want the image to cover the whole screen
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // 1. Background Image
           Positioned.fill(
             child: Image.asset(
               'assets/images/background.jpg',
               fit: BoxFit.cover,
             ),
           ),
-
-          // 2. Original Login Page Content
-          SafeArea( // SafeArea prevents content from hiding behind the notch/status bar
+          SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    "SG Govt body approved!",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.blueAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                   const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8), // Optional: adds a slight white tint behind text for better readability
+                      color: Colors.white.withOpacity(0.8),
                       border: Border.all(color: Colors.red, width: 2),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -162,20 +297,21 @@ class LoginScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       side: const BorderSide(color: Colors.green, width: 2),
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.white.withOpacity(0.8),
                     ),
                     onPressed: () {
                       Navigator.pushReplacementNamed(context, '/family');
                     },
                     child: const Text(
-                      "LOGIN or register",
+                      "Record Your Memories",
                       style: TextStyle(fontSize: 16, color: Colors.green),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 40),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.green, width: 1.5),
-                      backgroundColor: Colors.white.withOpacity(0.8), // Optional readability tweak
+                      side: const BorderSide(color: Colors.green, width: 2),
+                      backgroundColor: Colors.white.withOpacity(0.8),
                     ),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -184,7 +320,16 @@ class LoginScreen extends StatelessWidget {
                     },
                     child: const Text(
                       "Admin",
-                      style: TextStyle(color: Colors.green),
+                      style: TextStyle(fontSize: 16, color: Colors.green),
+                    ),
+                  ),
+                  const Text(
+                    "Proudly made in Singapore",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -200,6 +345,9 @@ class LoginScreen extends StatelessWidget {
 // ==========================================
 // 3. MY FAMILY SCREEN (ME / My Kids Tabs)
 // ==========================================
+// ==========================================
+// 3. MY FAMILY SCREEN (ME / My Kids Tabs)
+// ==========================================
 class FamilyScreen extends StatelessWidget {
   const FamilyScreen({Key? key}) : super(key: key);
 
@@ -207,13 +355,13 @@ class FamilyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
-      initialIndex: 1, // Focus on "My Kids" tab by default
+      initialIndex: 1,
       child: Scaffold(
         appBar: AppBar(
           title: const Text("My Family"),
           bottom: const TabBar(
             tabs: [
-              Tab(text: "ME"),
+              Tab(text: "Me & My Spouse"),
               Tab(text: "My Kids"),
             ],
           ),
@@ -221,12 +369,20 @@ class FamilyScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             const Center(child: Text("Parent Profile & Personal Info Details")),
-            // My Kids Tab View
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  const Icon(Icons.family_restroom, size: 100, color: Colors.indigo),
+                  // Replaced Icon with JPG Image asset from assets/images
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12), // Optional rounded corners
+                    child: Image.asset(
+                      'assets/images/background.jpg', // Replace 'background.jpg' with your image file name
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   Expanded(
                     child: ListView(
@@ -284,13 +440,10 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
       body: PageView(
         controller: _pageController,
         children: [
-          // Screen 1: Overview & Notifications
           _buildMainOverviewPage(context, kidName),
-          // Screen 2: Manage My Kid Data (Swiped from Left to Right)
           _buildManageKidDataPage(),
         ],
       ),
-      // Floating Buttons (1: Activities, 2: Q&A, 3: Blogs)
       floatingActionButton: SpeedDial(
         icon: Icons.menu,
         activeIcon: Icons.close,
@@ -298,12 +451,12 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
         children: [
           SpeedDialChild(
             child: const Icon(Icons.sports_esports),
-            label: 'Activities and stories',
+            label: 'Activities and Stories',
             onTap: () => Navigator.pushNamed(context, '/activities', arguments: kidName),
           ),
           SpeedDialChild(
             child: const Icon(Icons.question_answer),
-            label: 'Q&A',
+            label: 'Q&A and Parental Tips',
             onTap: () => Navigator.pushNamed(context, '/qna'),
           ),
           SpeedDialChild(
@@ -337,7 +490,7 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      "Details:\nName: $name\nAge: 5\nPersonal: (allergies, hobbies, activities, blood group)",
+                      "Details:\nName: $name\nAge: 5",
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
@@ -402,7 +555,7 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
             Text("Manage Data", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(height: 20),
             Text("Health History:", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("Allergies, vaccinations, doctor visits, dosage and medications"),
+            Text("Allergies, vaccinations, doctor visits, dosage and medications\n(allergies, hobbies, activities, blood group)"),
             SizedBox(height: 15),
             Text("Likes:", style: TextStyle(fontWeight: FontWeight.bold)),
             Text("Food, sports, hobbies, pets, picnics"),
@@ -430,7 +583,7 @@ class ActivitiesScreen extends StatelessWidget {
     final kidName = ModalRoute.of(context)?.settings.arguments as String? ?? "selected kid";
 
     return Scaffold(
-      appBar: AppBar(title: Text("Activities for <$kidName>")),
+      appBar: AppBar(title: Text("Activities for $kidName")),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: const [
@@ -458,13 +611,13 @@ class QnAScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Q&A / Sponsored content")),
+      appBar: AppBar(title: const Text("Q&A / Sponsored content/ parental guide")),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
           const ListTile(title: Text("What to feed?")),
           const Divider(),
-          const ListTile(title: Text("Allery advise")),
+          const ListTile(title: Text("Allergy advise")),
           const Divider(),
           const ListTile(title: Text("Doctor connect / gynaecologists (premium)")),
           const Divider(),
@@ -500,129 +653,3 @@ class BlogsScreen extends StatelessWidget {
     );
   }
 }
-
-
-/*
-import 'package:flutter/material.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-}
-*/
