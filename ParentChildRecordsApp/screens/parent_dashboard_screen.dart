@@ -14,21 +14,28 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   final PageController _pageController = PageController();
   List<Map<String, String>> _schedules = [];
   bool _isLoading = true;
-  String _parentPrefix = '';
+  bool _isInitialized = false;
+
+  Map<String, String> _parentData = {
+    "name": "Parent",
+    "relation": "Guardian",
+    "work": "Not specified",
+    "phone": "Not specified",
+  };
+  String _parentPrefix = 'parent';
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final parentData = ModalRoute.of(context)?.settings.arguments as Map<String, String>? ??
-        {
-          "name": "Parent",
-          "relation": "Guardian",
-          "work": "Not specified",
-          "phone": "Not specified",
-        };
-
-    _parentPrefix = (parentData['name'] ?? 'parent').toLowerCase().replaceAll(' ', '_');
-    _loadSchedulesFromDB();
+    if (!_isInitialized) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map) {
+        _parentData = Map<String, String>.from(args);
+      }
+      _parentPrefix = (_parentData['name'] ?? 'parent').toLowerCase().replaceAll(' ', '_');
+      _loadSchedulesFromDB();
+      _isInitialized = true;
+    }
   }
 
   // Load schedules from SQLite database
@@ -133,23 +140,15 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final parentData = ModalRoute.of(context)?.settings.arguments as Map<String, String>? ??
-        {
-          "name": "Parent",
-          "relation": "Guardian",
-          "work": "Not specified",
-          "phone": "Not specified",
-        };
-
     return Scaffold(
       appBar: AppBar(
-        title: Text("${parentData['name']}'s Dashboard"),
+        title: Text("${_parentData['name']}'s Dashboard"),
       ),
       body: PageView(
         controller: _pageController,
         children: [
-          _buildMainOverviewPage(context, parentData),
-          _buildManageParentDataGrid(_parentPrefix, parentData['name'] ?? 'Parent'),
+          _buildMainOverviewPage(context, _parentData),
+          _buildManageParentDataGrid(_parentPrefix, _parentData['name'] ?? 'Parent'),
         ],
       ),
     );
