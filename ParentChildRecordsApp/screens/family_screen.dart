@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,7 +13,7 @@ class FamilyScreen extends StatefulWidget {
 }
 
 class _FamilyScreenState extends State<FamilyScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   List<Map<String, dynamic>> _parents = [];
   List<Map<String, dynamic>> _kids = [];
@@ -20,18 +21,34 @@ class _FamilyScreenState extends State<FamilyScreen>
   String _pageTitle = "My Family";
   String? _backgroundImagePath;
 
-  // Time tracking values (percentages or raw time units)
-  double _meTime = 25.0;
-  double _spouseTime = 35.0;
-  double _kidsTime = 40.0;
+  // Time tracking metrics (seconds)
+  int _meSec = 100;
+  int _spouseSec = 100;
+  int _kidsSec = 100;
+  bool _isGreyState = true;
 
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 2, vsync: this);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
@@ -39,6 +56,7 @@ class _FamilyScreenState extends State<FamilyScreen>
     final background = await DatabaseHelper.instance.getFamilyBackground();
     final parentRecords = await DatabaseHelper.instance.getFamilyMembers('parent');
     final kidRecords = await DatabaseHelper.instance.getFamilyMembers('kid');
+    final timeStats = await DatabaseHelper.instance.getOrResetDailyTimeStats();
 
     if (parentRecords.isEmpty && kidRecords.isEmpty) {
       await DatabaseHelper.instance.insertFamilyMember({
@@ -46,21 +64,24 @@ class _FamilyScreenState extends State<FamilyScreen>
         'relation': 'Father',
         'work': 'Software Engineer',
         'phone': '+1 234 567 890',
-        'type': 'parent'
+        'type': 'parent',
+        'is_current_user': "0",
       });
       await DatabaseHelper.instance.insertFamilyMember({
         'name': 'Jane Doe',
         'relation': 'Mother',
         'work': 'Architect',
         'phone': '+1 234 567 891',
-        'type': 'parent'
+        'type': 'parent',
+        'is_current_user': "1",
       });
       await DatabaseHelper.instance.insertFamilyMember({
         'name': 'Leo Doe',
         'relation': 'Son',
         'work': '5 years old',
         'phone': 'N/A',
-        'type': 'kid'
+        'type': 'kid',
+        'is_current_user': "0",
       });
 
       _loadData();
@@ -73,12 +94,15 @@ class _FamilyScreenState extends State<FamilyScreen>
         _backgroundImagePath = background;
         _parents = parentRecords;
         _kids = kidRecords;
+        _meSec = timeStats['me_seconds'] ?? 100;
+        _spouseSec = timeStats['spouse_seconds'] ?? 100;
+        _kidsSec = timeStats['kids_seconds'] ?? 100;
+        _isGreyState = (timeStats['is_grey_state'] ?? 1) == 1;
         _isLoading = false;
       });
     }
   }
 
-  // Pick image from gallery using native device picker
   Future<void> _pickImageFromGallery() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -196,72 +220,95 @@ class _FamilyScreenState extends State<FamilyScreen>
     final bool isKidTab = _tabController.index == 1;
     final nameController = TextEditingController();
     final relationController = TextEditingController(
-      text: isKidTab ? 'Son / Daughter' : 'Spouse',
+      text: isKidTab ? 'Son or Daughter' : 'Parent or Other',
     );
     final workController = TextEditingController();
     final phoneController = TextEditingController();
+    bool isCurrentUser = false;
 
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(isKidTab ? "Add New Child" : "Add Parent / Spouse"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: "Full Name"),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(isKidTab ? "Add New Child" : "Add Parent / Other"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: "Full Name"),
+                    ),
+                    TextField(
+                      controller: relationController,
+                      decoration: const InputDecoration(labelText: "Relation / Role"),
+                    ),
+                    TextField(
+                      controller: workController,
+                      decoration: InputDecoration(
+                        labelText: isKidTab ? "Age" : "Occupation",
+                      ),
+                    ),
+                    if (!isKidTab) ...[
+                      TextField(
+                        controller: phoneController,
+                        decoration: const InputDecoration(labelText: "Phone Number"),
+                      ),
+                      const SizedBox(height: 8),
+                      CheckboxListTile(
+                        value: isCurrentUser,
+                        title: const Text("This is Me (Primary User)"),
+                        subtitle: const Text("Tracks time spent under 'Me' dashboard"),
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (val) {
+                          setDialogState(() {
+                            isCurrentUser = val ?? false;
+                          });
+                        },
+                      ),
+                    ],
+                  ],
                 ),
-                TextField(
-                  controller: relationController,
-                  decoration: const InputDecoration(labelText: "Relation / Role"),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text("Cancel"),
                 ),
-                TextField(
-                  controller: workController,
-                  decoration: InputDecoration(
-                    labelText: isKidTab ? "Age / Grade" : "Occupation",
-                  ),
-                ),
-                if (!isKidTab)
-                  TextField(
-                    controller: phoneController,
-                    decoration: const InputDecoration(labelText: "Phone Number"),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.trim().isNotEmpty) {
-                  final newMember = {
-                    'name': nameController.text.trim(),
-                    'relation': relationController.text.trim(),
-                    'work': workController.text.trim().isEmpty
-                        ? 'Not specified'
-                        : workController.text.trim(),
-                    'phone': phoneController.text.trim().isEmpty
-                        ? 'N/A'
-                        : phoneController.text.trim(),
-                    'type': isKidTab ? 'kid' : 'parent',
-                  };
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isNotEmpty) {
+                      final newMember = {
+                        'name': nameController.text.trim(),
+                        'relation': relationController.text.trim(),
+                        'work': workController.text.trim().isEmpty
+                            ? 'Not specified'
+                            : workController.text.trim(),
+                        'phone': phoneController.text.trim().isEmpty
+                            ? 'N/A'
+                            : phoneController.text.trim(),
+                        'type': isKidTab ? 'kid' : 'parent',
+                        'is_current_user': (!isKidTab && isCurrentUser) ? 1 : 0,
+                      };
 
-                  await DatabaseHelper.instance.insertFamilyMember(newMember);
-                  if (mounted) {
-                    Navigator.pop(dialogContext);
-                    _loadData();
-                  }
-                }
-              },
-              child: const Text("Add Member"),
-            ),
-          ],
+                      final newId = await DatabaseHelper.instance.insertFamilyMember(newMember);
+                      if (!isKidTab && isCurrentUser) {
+                        await DatabaseHelper.instance.updateCurrentParentUser(newId);
+                      }
+
+                      if (mounted) {
+                        Navigator.pop(dialogContext);
+                        _loadData();
+                      }
+                    }
+                  },
+                  child: const Text("Add Member"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -274,17 +321,20 @@ class _FamilyScreenState extends State<FamilyScreen>
         return FileImage(file);
       }
     }
-    // Correct local path fallback
     return const AssetImage('assets/images/familybg.jpg');
   }
 
-  // --- Donut Style Pie Chart Widget ---
   Widget _buildDonutChartCard() {
-    final double total = _meTime + _spouseTime + _kidsTime;
+    final double total = (_meSec + _spouseSec + _kidsSec).toDouble();
 
-    final double mePercentage = total > 0 ? (_meTime / total) * 100 : 0;
-    final double spousePercentage = total > 0 ? (_spouseTime / total) * 100 : 0;
-    final double kidsPercentage = total > 0 ? (_kidsTime / total) * 100 : 0;
+    final double mePercentage = total > 0 ? (_meSec / total) * 100 : 33.3;
+    final double spousePercentage = total > 0 ? (_spouseSec / total) * 100 : 33.3;
+    final double kidsPercentage = total > 0 ? (_kidsSec / total) * 100 : 33.4;
+
+    // Palette selection: Shades of grey at midnight/reset, Active colors when time logged
+    final Color meColor = _isGreyState ? Colors.grey.shade400 : Colors.indigo;
+    final Color spouseColor = _isGreyState ? Colors.grey.shade600 : Colors.teal;
+    final Color kidsColor = _isGreyState ? Colors.grey.shade800 : Colors.pink;
 
     return Card(
       elevation: 4,
@@ -295,12 +345,12 @@ class _FamilyScreenState extends State<FamilyScreen>
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const Text(
-              "Time Spent Overview",
+            Text(
+              _isGreyState ? "Time Spent Overview (New Day)" : "Time Spent Overview Today",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.indigo,
+                color: _isGreyState ? Colors.grey.shade700 : Colors.indigo,
               ),
             ),
             const SizedBox(height: 12),
@@ -315,7 +365,7 @@ class _FamilyScreenState extends State<FamilyScreen>
                       startDegreeOffset: -90,
                       sections: [
                         PieChartSectionData(
-                          color: Colors.indigo,
+                          color: meColor,
                           value: mePercentage,
                           title: '${mePercentage.toStringAsFixed(0)}%',
                           radius: 30,
@@ -326,7 +376,7 @@ class _FamilyScreenState extends State<FamilyScreen>
                           ),
                         ),
                         PieChartSectionData(
-                          color: Colors.teal,
+                          color: spouseColor,
                           value: spousePercentage,
                           title: '${spousePercentage.toStringAsFixed(0)}%',
                           radius: 30,
@@ -337,7 +387,7 @@ class _FamilyScreenState extends State<FamilyScreen>
                           ),
                         ),
                         PieChartSectionData(
-                          color: Colors.pink,
+                          color: kidsColor,
                           value: kidsPercentage,
                           title: '${kidsPercentage.toStringAsFixed(0)}%',
                           radius: 30,
@@ -352,9 +402,9 @@ class _FamilyScreenState extends State<FamilyScreen>
                   ),
                   Center(
                     child: Text(
-                      "My Time",
+                      _isGreyState ? "Reset Mode" : "Time Spent",
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey.shade800,
                       ),
@@ -366,22 +416,16 @@ class _FamilyScreenState extends State<FamilyScreen>
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: const [
-                _ChartLegendItem(color: Colors.indigo, label: "Me"),
-                _ChartLegendItem(color: Colors.teal, label: "Spouse"),
-                _ChartLegendItem(color: Colors.pink, label: "Kids"),
+              children: [
+                _ChartLegendItem(color: meColor, label: "Me"),
+                _ChartLegendItem(color: spouseColor, label: "Spouse"),
+                _ChartLegendItem(color: kidsColor, label: "Kids"),
               ],
             ),
           ],
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   @override
@@ -480,7 +524,9 @@ class _FamilyScreenState extends State<FamilyScreen>
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            isKid ? "No kids added yet. Tap '+' to add." : "No parents/spouses added yet. Tap '+' to add.",
+            isKid
+                ? "No kids added yet. Tap '+' to add."
+                : "No parents/Other added yet. Tap '+' to add.",
             style: const TextStyle(color: Colors.grey),
           ),
         ),
@@ -492,21 +538,50 @@ class _FamilyScreenState extends State<FamilyScreen>
       itemCount: members.length,
       itemBuilder: (context, index) {
         final member = members[index];
+        final bool isCurrentUser = (member['is_current_user'] ?? 0) == 1;
+
         return Card(
           elevation: 3,
           color: Colors.white.withOpacity(0.92),
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: isKid ? Colors.pink.shade100 : Colors.indigo.shade100,
+              backgroundColor: isKid
+                  ? Colors.pink.shade100
+                  : (isCurrentUser ? Colors.indigo.shade100 : Colors.teal.shade100),
               child: Icon(
                 isKid ? Icons.child_care : Icons.person,
-                color: isKid ? Colors.pink : Colors.indigo,
+                color: isKid
+                    ? Colors.pink
+                    : (isCurrentUser ? Colors.indigo : Colors.teal),
               ),
             ),
-            title: Text(
-              member['name'],
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            title: Row(
+              children: [
+                Text(
+                  member['name'],
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                if (!isKid && isCurrentUser) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.indigo.shade200),
+                    ),
+                    child: const Text(
+                      'ME',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.indigo,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
             subtitle: Text(
               "${member['relation']} • ${member['work']}\nPhone: ${member['phone']}",
@@ -524,19 +599,26 @@ class _FamilyScreenState extends State<FamilyScreen>
                 Navigator.pushNamed(
                   context,
                   '/kid_dashboard',
-                  arguments: member['name'],
-                );
+                  arguments: {
+                    'name': member['name'] ?? 'Kid',
+                    'age': (member['work'] != null &&
+                        member['work'].toString().isNotEmpty)
+                        ? member['work']
+                        : 'Not specified',
+                  },
+                ).then((_) => _loadData());
               } else {
                 Navigator.pushNamed(
                   context,
                   '/parent_dashboard',
                   arguments: {
-                    "name": member['name'],
-                    "relation": member['relation'],
-                    "work": member['work'],
-                    "phone": member['phone'],
+                    'name': member['name'],
+                    'relation': member['relation'],
+                    'work': member['work'],
+                    'phone': member['phone'],
+                    'is_current_user': member['is_current_user'] ?? 0,
                   },
-                );
+                ).then((_) => _loadData());
               }
             },
           ),

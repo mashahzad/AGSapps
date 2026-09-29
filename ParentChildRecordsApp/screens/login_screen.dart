@@ -188,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const Spacer(),
                   const Text(
-                    "Proudly made in Singapore",
+                    "Made by AGS team",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,

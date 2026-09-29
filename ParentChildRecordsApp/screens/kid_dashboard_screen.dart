@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../database/database_helper.dart';
+import '../services/time_tracker.dart';
 import '../widgets/database_grid_tile.dart';
 
 class KidDashboardScreen extends StatefulWidget {
-  const KidDashboardScreen({Key? key}) : super(key: key);
+  const KidDashboardScreen({super.key});
 
   @override
   State<KidDashboardScreen> createState() => _KidDashboardScreenState();
@@ -17,15 +18,40 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
   bool _isLoading = true;
   String _kidPrefix = '';
 
+  String _kidName = 'Kid';
+  String _kidAge = 'Not specified';
+
+  TimeTracker? _tracker;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final kidName = ModalRoute.of(context)?.settings.arguments as String? ?? "Kid";
-    _kidPrefix = kidName.toLowerCase().replaceAll(' ', '_');
+    final args = ModalRoute.of(context)?.settings.arguments;
+
+    if (args is Map) {
+      _kidName = args['name']?.toString() ?? 'Kid';
+      _kidAge = args['age']?.toString() ?? 'Not specified';
+    } else if (args is String) {
+      _kidName = args;
+    }
+
+    _kidPrefix = _kidName.toLowerCase().replaceAll(' ', '_');
+
+    if (_tracker == null) {
+      _tracker = TimeTracker('kids');
+      _tracker!.start();
+    }
+
     _loadNotificationsFromDB();
   }
 
-  // Load reminders from SQLite database
+  @override
+  void dispose() {
+    _tracker?.stopAndSave();
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadNotificationsFromDB() async {
     final record = await DatabaseHelper.instance.getRecord('${_kidPrefix}_reminders');
     if (record != null && record['content'] != null) {
@@ -49,8 +75,7 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
     if (mounted) {
       setState(() {
         _notifications = [
-          {"title": "Doctor Appointment", "subtitle": "Tomorrow at 10:00 AM"},
-          {"title": "Vaccination Alert", "subtitle": "Due in 5 days"},
+          {"title": "$_kidName's Daily Schedule", "subtitle": "Check today's activities and reminders."},
         ];
         _isLoading = false;
       });
@@ -58,7 +83,6 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
     }
   }
 
-  // Save reminders back to SQLite database
   Future<void> _saveNotificationsToDB() async {
     final jsonString = jsonEncode(_notifications);
     await DatabaseHelper.instance.insertOrUpdateRecord(
@@ -127,17 +151,15 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final kidName = ModalRoute.of(context)?.settings.arguments as String? ?? "Kid";
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(kidName),
+        title: Text("$_kidName's Dashboard"),
       ),
       body: PageView(
         controller: _pageController,
         children: [
-          _buildMainOverviewPage(context, kidName),
-          _buildRecordMemoriesGrid(_kidPrefix, kidName),
+          _buildMainOverviewPage(context, _kidName, _kidAge),
+          _buildRecordMemoriesGrid(_kidPrefix, _kidName),
         ],
       ),
       floatingActionButton: SpeedDial(
@@ -148,7 +170,7 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
           SpeedDialChild(
             child: const Icon(Icons.sports_esports),
             label: 'Activities and Stories',
-            onTap: () => Navigator.pushNamed(context, '/activities', arguments: kidName),
+            onTap: () => Navigator.pushNamed(context, '/activities', arguments: _kidName),
           ),
           SpeedDialChild(
             child: const Icon(Icons.question_answer),
@@ -158,14 +180,14 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
           SpeedDialChild(
             child: const Icon(Icons.article),
             label: 'Blog & Tips',
-            onTap: () => Navigator.pushNamed(context, '/blogs', arguments: kidName),
+            onTap: () => Navigator.pushNamed(context, '/blogs', arguments: _kidName),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMainOverviewPage(BuildContext context, String name) {
+  Widget _buildMainOverviewPage(BuildContext context, String name, String age) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -188,9 +210,22 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Text(
-                      "Name: $name\nAge: 5\nCurrently: At school Tampines (8am-4pm)\nNext: Piano classes at Punggol (5pm-7pm)",
-                      style: const TextStyle(fontSize: 13, height: 1.4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Name: $name",
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Age: $age",
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -266,9 +301,11 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Record Memories for $kidName", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text("Record Memories for $kidName",
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text("Tap any card below to enter or edit saved details.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+          const Text("Tap any card below to enter or edit saved details.",
+              style: TextStyle(color: Colors.grey, fontSize: 12)),
           const SizedBox(height: 16),
           Expanded(
             child: GridView.count(

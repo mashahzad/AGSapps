@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../database/database_helper.dart';
+import '../services/time_tracker.dart';
 import '../widgets/database_grid_tile.dart';
 
 class ParentDashboardScreen extends StatefulWidget {
@@ -12,76 +14,91 @@ class ParentDashboardScreen extends StatefulWidget {
 
 class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   final PageController _pageController = PageController();
-  List<Map<String, String>> _schedules = [];
+  List<Map<String, String>> _notifications = [];
   bool _isLoading = true;
-  bool _isInitialized = false;
 
-  Map<String, String> _parentData = {
-    "name": "Parent",
-    "relation": "Guardian",
-    "work": "Not specified",
-    "phone": "Not specified",
-  };
-  String _parentPrefix = 'parent';
+  String _parentName = 'Parent';
+  String _parentRelation = 'Parent';
+  String _parentWork = 'Not specified';
+  String _parentPhone = 'N/A';
+  String _parentPrefix = '';
+
+  TimeTracker? _tracker;
+  bool _isCurrentUser = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_isInitialized) {
-      final args = ModalRoute.of(context)?.settings.arguments;
-      if (args is Map) {
-        _parentData = Map<String, String>.from(args);
-      }
-      _parentPrefix = (_parentData['name'] ?? 'parent').toLowerCase().replaceAll(' ', '_');
-      _loadSchedulesFromDB();
-      _isInitialized = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+
+    if (args is Map) {
+      _parentName = args['name']?.toString() ?? 'Parent';
+      _parentRelation = args['relation']?.toString() ?? 'Parent';
+      _parentWork = args['work']?.toString() ?? 'Not specified';
+      _parentPhone = args['phone']?.toString() ?? 'N/A';
+      _isCurrentUser = args['is_current_user']?.toString() == '1';
+    } else if (args is String) {
+      _parentName = args;
     }
+
+    _parentPrefix = _parentName.toLowerCase().replaceAll(' ', '_');
+
+    if (_tracker == null) {
+      _tracker = TimeTracker(_isCurrentUser ? 'me' : 'spouse');
+      _tracker!.start();
+    }
+
+    _loadNotificationsFromDB();
   }
 
-  // Load schedules from SQLite database
-  Future<void> _loadSchedulesFromDB() async {
-    final record = await DatabaseHelper.instance.getRecord('${_parentPrefix}_schedules');
+  @override
+  void dispose() {
+    _tracker?.stopAndSave();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadNotificationsFromDB() async {
+    final record = await DatabaseHelper.instance.getRecord('${_parentPrefix}_reminders');
     if (record != null && record['content'] != null) {
       try {
         final List<dynamic> decoded = jsonDecode(record['content']);
         if (mounted) {
           setState(() {
-            _schedules = decoded.map((e) => Map<String, String>.from(e)).toList();
+            _notifications = decoded.map((e) => Map<String, String>.from(e)).toList();
             _isLoading = false;
           });
         }
       } catch (e) {
-        _setDefaultSchedules();
+        _setDefaultNotifications();
       }
     } else {
-      _setDefaultSchedules();
+      _setDefaultNotifications();
     }
   }
 
-  void _setDefaultSchedules() {
+  void _setDefaultNotifications() {
     if (mounted) {
       setState(() {
-        _schedules = [
-          {"title": "Parent-Teacher Conference", "subtitle": "Friday at 3:00 PM"},
-          {"title": "Car Servicing", "subtitle": "This Weekend"},
+        _notifications = [
+          {"title": "$_parentName's Daily Schedule", "subtitle": "Check today's activities and reminders."},
         ];
         _isLoading = false;
       });
-      _saveSchedulesToDB();
+      _saveNotificationsToDB();
     }
   }
 
-  // Save schedules back to SQLite database
-  Future<void> _saveSchedulesToDB() async {
-    final jsonString = jsonEncode(_schedules);
+  Future<void> _saveNotificationsToDB() async {
+    final jsonString = jsonEncode(_notifications);
     await DatabaseHelper.instance.insertOrUpdateRecord(
-      '${_parentPrefix}_schedules',
-      'Schedules',
+      '${_parentPrefix}_reminders',
+      'Reminders',
       jsonString,
     );
   }
 
-  void _addScheduleDialog(BuildContext context) {
+  void _addNotificationDialog(BuildContext context) {
     final titleController = TextEditingController();
     final subtitleController = TextEditingController();
 
@@ -89,7 +106,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text("Add New Schedule / Reminder"),
+          title: const Text("Add Notification / Reminder"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -97,15 +114,15 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                 controller: titleController,
                 decoration: const InputDecoration(
                   labelText: "Title",
-                  hintText: "e.g., Dental Appointment",
+                  hintText: "e.g., Doctor Appointment",
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: subtitleController,
                 decoration: const InputDecoration(
-                  labelText: "Time / Notes",
-                  hintText: "e.g., Tomorrow at 2:00 PM",
+                  labelText: "Time / Details",
+                  hintText: "e.g., Tomorrow at 10:00 AM",
                 ),
               ),
             ],
@@ -119,14 +136,14 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               onPressed: () async {
                 if (titleController.text.trim().isNotEmpty) {
                   setState(() {
-                    _schedules.add({
+                    _notifications.add({
                       "title": titleController.text.trim(),
                       "subtitle": subtitleController.text.trim().isEmpty
                           ? "No details"
                           : subtitleController.text.trim(),
                     });
                   });
-                  await _saveSchedulesToDB();
+                  await _saveNotificationsToDB();
                   if (mounted) Navigator.pop(dialogContext);
                 }
               },
@@ -142,26 +159,43 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("${_parentData['name']}'s Dashboard"),
+        title: Text("$_parentName's Dashboard"),
       ),
       body: PageView(
         controller: _pageController,
         children: [
-          _buildMainOverviewPage(context, _parentData),
-          _buildManageParentDataGrid(_parentPrefix, _parentData['name'] ?? 'Parent'),
+          _buildMainOverviewPage(),
+          _buildRecordMemoriesGrid(),
+        ],
+      ),
+      floatingActionButton: SpeedDial(
+        icon: Icons.menu,
+        activeIcon: Icons.close,
+        spacing: 12,
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.question_answer),
+            label: 'Q&A and Parental Tips',
+            onTap: () => Navigator.pushNamed(context, '/qna'),
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.article),
+            label: 'Blog & Tips',
+            onTap: () => Navigator.pushNamed(context, '/blogs', arguments: _parentName),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMainOverviewPage(BuildContext context, Map<String, String> data) {
+  Widget _buildMainOverviewPage() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Card(
-            color: Colors.indigo.shade50,
+            color: Colors.teal.shade50,
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Row(
@@ -170,16 +204,37 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.indigo.shade200,
+                      color: Colors.teal.shade100,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.person, size: 40, color: Colors.indigo),
+                    child: Icon(
+                      Icons.person,
+                      size: 40,
+                      color: _isCurrentUser ? Colors.indigo : Colors.teal,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Text(
-                      "Name: ${data['name']}\nRole: ${data['relation']}\nOccupation: ${data['work']}\nContact: ${data['phone']}",
-                      style: const TextStyle(fontSize: 13, height: 1.4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Name: $_parentName ${_isCurrentUser ? '(Me)' : ''}",
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Role: $_parentRelation • $_parentWork",
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
+                        ),
+                        Text(
+                          "Phone: $_parentPhone",
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -209,9 +264,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               IconButton(
-                icon: const Icon(Icons.add_circle, color: Colors.indigo),
-                onPressed: () => _addScheduleDialog(context),
-                tooltip: "Add Schedule",
+                icon: const Icon(Icons.add_circle, color: Colors.teal),
+                onPressed: () => _addNotificationDialog(context),
+                tooltip: "Add Reminder",
               ),
             ],
           ),
@@ -219,24 +274,24 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _schedules.isEmpty
-                ? const Center(child: Text("No schedules added yet."))
+                : _notifications.isEmpty
+                ? const Center(child: Text("No reminders added yet."))
                 : ListView.builder(
-              itemCount: _schedules.length,
+              itemCount: _notifications.length,
               itemBuilder: (context, index) {
-                final item = _schedules[index];
+                final item = _notifications[index];
                 return Card(
                   child: ListTile(
-                    leading: const Icon(Icons.event_note, color: Colors.indigo),
+                    leading: const Icon(Icons.notifications_active, color: Colors.teal),
                     title: Text(item['title'] ?? ''),
                     subtitle: Text(item['subtitle'] ?? ''),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
                       onPressed: () async {
                         setState(() {
-                          _schedules.removeAt(index);
+                          _notifications.removeAt(index);
                         });
-                        await _saveSchedulesToDB();
+                        await _saveNotificationsToDB();
                       },
                     ),
                   ),
@@ -249,49 +304,52 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     );
   }
 
-  Widget _buildManageParentDataGrid(String parentPrefix, String parentName) {
+  Widget _buildRecordMemoriesGrid() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("$parentName's Profile", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text("Personal Records for $_parentName",
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text("Tap any card below to enter or update information.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+          const Text("Tap any card below to enter or edit saved details.",
+              style: TextStyle(color: Colors.grey, fontSize: 12)),
           const SizedBox(height: 16),
           Expanded(
             child: GridView.count(
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 1.1,
+              childAspectRatio: 1.05,
               children: [
                 DatabaseGridTile(
-                  recordId: "${parentPrefix}_personal_details",
-                  defaultTitle: "Personal Details",
-                  defaultContent: "Tap to enter NRIC/Passport, DOB, Emergency Contact",
+                  recordId: "${_parentPrefix}_general_details",
+                  defaultTitle: "General Details",
+                  defaultContent: "Tap to enter personal background, occupation, notes",
                   icon: Icons.badge,
+                  color: Colors.indigo,
                 ),
                 DatabaseGridTile(
-                  recordId: "${parentPrefix}_work_info",
-                  defaultTitle: "Work Info",
-                  defaultContent: "Tap to enter Company name, Office address, Extension",
-                  icon: Icons.work,
-                  color: Colors.blue,
+                  recordId: "${_parentPrefix}_health_history",
+                  defaultTitle: "Health & Care",
+                  defaultContent: "Tap to enter insurance details, prescriptions, visits",
+                  icon: Icons.local_hospital,
+                  color: Colors.red,
                 ),
                 DatabaseGridTile(
-                  recordId: "${parentPrefix}_health_info",
-                  defaultTitle: "Health & Insurance",
-                  defaultContent: "Tap to enter Blood group, Medical conditions, Policy details",
-                  icon: Icons.medical_information,
-                  color: Colors.redAccent,
+                  recordId: "${_parentPrefix}_important_contacts",
+                  defaultTitle: "Important Contacts",
+                  defaultContent: "Tap to enter work contacts, emergency numbers",
+                  icon: Icons.contacts,
+                  color: Colors.teal,
                 ),
                 DatabaseGridTile(
-                  recordId: "${parentPrefix}_logistics",
-                  defaultTitle: "Logistics",
-                  defaultContent: "Tap to enter Primary pick-up duties, Weekend roles",
-                  icon: Icons.time_to_leave,
-                  color: Colors.green,
+                  recordId: "${_parentPrefix}_notes_goals",
+                  defaultTitle: "Notes & Goals",
+                  defaultContent: "Tap to enter family goals, tasks, personal notes",
+                  icon: Icons.assignment,
+                  color: Colors.amber.shade800,
                 ),
               ],
             ),
