@@ -337,9 +337,10 @@ class _FamilyScreenState extends State<FamilyScreen>
     final Color kidsColor = _isGreyState ? Colors.grey.shade800 : Colors.pink;
 
     return Card(
-      elevation: 4,
+      elevation: 2,
       margin: const EdgeInsets.all(16),
-      color: Colors.white.withOpacity(0.92),
+      // Lowered opacity from 0.92 to 0.70 to let background show through
+      color: Colors.white.withOpacity(0.60),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -406,7 +407,7 @@ class _FamilyScreenState extends State<FamilyScreen>
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
+                        color: Colors.grey.shade900,
                       ),
                     ),
                   ),
@@ -482,8 +483,9 @@ class _FamilyScreenState extends State<FamilyScreen>
           image: DecorationImage(
             image: bgImage,
             fit: BoxFit.cover,
+            // Reduced dark overlay opacity from 0.15 to 0.05 for higher clarity
             colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(0.15),
+              Colors.black.withOpacity(0.05),
               BlendMode.darken,
             ),
           ),
@@ -520,14 +522,14 @@ class _FamilyScreenState extends State<FamilyScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
+            color: Colors.white.withOpacity(0.60),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             isKid
                 ? "No kids added yet. Tap '+' to add."
                 : "No parents/Other added yet. Tap '+' to add.",
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w600),
           ),
         ),
       );
@@ -541,8 +543,9 @@ class _FamilyScreenState extends State<FamilyScreen>
         final bool isCurrentUser = (member['is_current_user'] ?? 0) == 1;
 
         return Card(
-          elevation: 3,
-          color: Colors.white.withOpacity(0.92),
+          elevation: 2,
+          // Lowered opacity from 0.92 to 0.75 for translucent member cards
+          color: Colors.white.withOpacity(0.60),
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: CircleAvatar(
@@ -567,7 +570,7 @@ class _FamilyScreenState extends State<FamilyScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.indigo.shade50,
+                      color: Colors.indigo.shade50.withOpacity(0.60),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: Colors.indigo.shade200),
                     ),

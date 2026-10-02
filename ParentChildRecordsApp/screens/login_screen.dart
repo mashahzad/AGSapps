@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 // 2. LOGIN SCREEN
 // ==========================================
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -50,6 +50,38 @@ class _LoginScreenState extends State<LoginScreen> {
                   "1. Privacy First: All growth records, photos, and personal notes are kept strictly private.\n\n"
                   "2. Data Responsibility: Users are responsible for maintaining backups of their records.\n\n"
                   "3. Content Usage: AI advice is for general informational purposes only.",
+              style: TextStyle(fontSize: 14, height: 1.4),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text("Close", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showOurStoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "Our App",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo),
+          ),
+          content: const SingleChildScrollView(
+            child: Text(
+              "Welcome to Kids Growth Journal!\n\n"
+                  "Created with love by the AGS team, this app helps parents track, preserve, "
+                  "and cherish every precious milestone in their children's growth and daily family life.\n\n"
+                  "Thank you for letting us be part of your family's journey!",
               style: TextStyle(fontSize: 14, height: 1.4),
             ),
           ),
@@ -153,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? () => Navigator.pushReplacementNamed(context, '/family')
                         : null,
                     child: const Text(
-                      "Record Your Memories",
+                      "Start Recording Your Memories",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.green,
@@ -170,15 +202,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     onPressed: _isAccepted
                         ? () {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Admin Portal Clicked")),
-                        );
+                      // Tries named route '/our_story', otherwise shows description dialog
+                      try {
+                        Navigator.pushNamed(context, '/description');
+                      } catch (_) {
+                        _showOurStoryDialog(context);
                       }
                     }
                         : null,
                     child: const Text(
-                      "Admin",
+                      "Know more about this App",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.green,

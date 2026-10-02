@@ -30,8 +30,8 @@ class ParentKidApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
-        '/description': (context) => const DescriptionScreen(),
         '/login': (context) => const LoginScreen(),
+        '/description': (context) => const DescriptionScreen(),
         '/family': (context) => const FamilyScreen(),
         '/parent_dashboard': (context) => const ParentDashboardScreen(),
         '/kid_dashboard': (context) => const KidDashboardScreen(),
