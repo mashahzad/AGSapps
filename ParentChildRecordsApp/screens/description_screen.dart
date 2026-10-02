@@ -65,7 +65,7 @@ class DescriptionScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 20),
                         Text(
-                          "Kids Growth Journal helps you keep it all in one private place — track growth, achievements, health milestones, and treasured memories as your children grow.",
+                          "Family Growth Journal helps you keep it all in one private place — track growth, achievements, health milestones, and treasured memories as your children grow.",
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 14, height: 1.5),
                         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // ==========================================
 // 2. LOGIN SCREEN
@@ -14,6 +15,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _isAccepted = false;
   late TapGestureRecognizer _termsGestureRecognizer;
+
+  static const Color forestGreen = Color(0xFF2E7D32);
 
   @override
   void initState() {
@@ -46,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           content: const SingleChildScrollView(
             child: Text(
-              "Welcome to Kids Growth Journal!\n\n"
+              "Welcome to Gloria!\n\n"
                   "1. Privacy First: All growth records, photos, and personal notes are kept strictly private.\n\n"
                   "2. Data Responsibility: Users are responsible for maintaining backups of their records.\n\n"
                   "3. Content Usage: AI advice is for general informational purposes only.",
@@ -78,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           content: const SingleChildScrollView(
             child: Text(
-              "Welcome to Kids Growth Journal!\n\n"
+              "Welcome to Gloria: Family Growth Journal!\n\n"
                   "Created with love by the AGS team, this app helps parents track, preserve, "
                   "and cherish every precious milestone in their children's growth and daily family life.\n\n"
                   "Thank you for letting us be part of your family's journey!",
@@ -124,20 +127,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: 20),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.9),
-                      border: Border.all(color: Colors.red, width: 2),
-                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: forestGreen, width: 2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      "Parent Child Records App",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Gloria",
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            color: forestGreen,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Family Growth Journal",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const Spacer(),
@@ -196,13 +215,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 20),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.green, width: 2),
+                      side: const BorderSide(color: Colors.indigo, width: 2),
                       backgroundColor: Colors.white.withOpacity(0.9),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: _isAccepted
                         ? () {
-                      // Tries named route '/our_story', otherwise shows description dialog
                       try {
                         Navigator.pushNamed(context, '/description');
                       } catch (_) {
@@ -214,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       "Know more about this App",
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.green,
+                        color: Colors.indigo,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

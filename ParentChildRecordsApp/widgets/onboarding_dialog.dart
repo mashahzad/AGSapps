@@ -27,7 +27,7 @@ class _OnboardingDialogState extends State<OnboardingDialog> {
 
   final List<OnboardingStep> _steps = const [
     OnboardingStep(
-      title: "Welcome to Kids Growth Journal!",
+      title: "Welcome to Gloria \nThe Family Growth Journal!",
       description:
       "Keep all your child's milestones, growth records, and precious memories organized in one secure place.",
       icon: Icons.family_restroom,

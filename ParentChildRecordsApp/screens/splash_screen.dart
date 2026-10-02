@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // ==========================================
 // 1. SPLASH SCREEN
@@ -13,6 +14,8 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   Timer? _timer;
+
+  static const Color forestGreen = Color(0xFF2E7D32);
 
   @override
   void initState() {
@@ -37,18 +40,34 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Text(
+              "Gloria",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.fredoka(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: forestGreen,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "By",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 20),
             Image.asset(
               'assets/images/logo.jpg',
-              width: 200,
-              height: 200,
+              width: 180,
+              height: 180,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) =>
               const Icon(Icons.child_care, size: 100, color: Colors.indigo),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "AGS presents",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
           ],
         ),
