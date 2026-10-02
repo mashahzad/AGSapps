@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../database/database_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/onboarding_dialog.dart';
 
 class FamilyScreen extends StatefulWidget {
   const FamilyScreen({super.key});
@@ -35,6 +38,9 @@ class _FamilyScreenState extends State<FamilyScreen>
     WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 2, vsync: this);
     _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstTimeUser();
+    });
   }
 
   @override
@@ -48,6 +54,20 @@ class _FamilyScreenState extends State<FamilyScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _loadData();
+    }
+  }
+
+  Future<void> _checkFirstTimeUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isFirstTime = prefs.getBool('isFirstTimeUser') ?? true;
+
+    if (isFirstTime && mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const OnboardingDialog(),
+      );
+      await prefs.setBool('isFirstTimeUser', false);
     }
   }
 
@@ -331,7 +351,6 @@ class _FamilyScreenState extends State<FamilyScreen>
     final double spousePercentage = total > 0 ? (_spouseSec / total) * 100 : 33.3;
     final double kidsPercentage = total > 0 ? (_kidsSec / total) * 100 : 33.4;
 
-    // Palette selection: Shades of grey at midnight/reset, Active colors when time logged
     final Color meColor = _isGreyState ? Colors.grey.shade400 : Colors.indigo;
     final Color spouseColor = _isGreyState ? Colors.grey.shade600 : Colors.teal;
     final Color kidsColor = _isGreyState ? Colors.grey.shade800 : Colors.pink;
@@ -339,7 +358,6 @@ class _FamilyScreenState extends State<FamilyScreen>
     return Card(
       elevation: 2,
       margin: const EdgeInsets.all(16),
-      // Lowered opacity from 0.92 to 0.70 to let background show through
       color: Colors.white.withOpacity(0.60),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -432,11 +450,45 @@ class _FamilyScreenState extends State<FamilyScreen>
   @override
   Widget build(BuildContext context) {
     final bgImage = _getBackgroundImage();
+    const Color forestGreen = Color(0xFF2E7D32);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_pageTitle),
+        toolbarHeight: 70, // Expanded height to accommodate the larger font sizes cleanly
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Gloria",
+              style: GoogleFonts.fredoka(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: forestGreen,
+                letterSpacing: 0.8,
+              ),
+            ),
+            Text(
+              _pageTitle,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: "App Tour",
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => const OnboardingDialog(),
+              );
+            },
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
@@ -483,7 +535,6 @@ class _FamilyScreenState extends State<FamilyScreen>
           image: DecorationImage(
             image: bgImage,
             fit: BoxFit.cover,
-            // Reduced dark overlay opacity from 0.15 to 0.05 for higher clarity
             colorFilter: ColorFilter.mode(
               Colors.black.withOpacity(0.05),
               BlendMode.darken,
@@ -544,7 +595,6 @@ class _FamilyScreenState extends State<FamilyScreen>
 
         return Card(
           elevation: 2,
-          // Lowered opacity from 0.92 to 0.75 for translucent member cards
           color: Colors.white.withOpacity(0.60),
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(

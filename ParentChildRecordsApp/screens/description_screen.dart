@@ -69,6 +69,14 @@ class DescriptionScreen extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 14, height: 1.5),
                         ),
+                        SizedBox(height: 20),
+                        Text(
+                          "Not on Cloud, Your Privacy Matters: \nYou have full privacy and ownership of your data, and your data is not stored on cloud.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 14, height: 1.5),
+                        ),
+
+                        //"You have full privacy and ownership of your data, and your data is not stored on cloud"
                       ],
                     ),
                   ),
