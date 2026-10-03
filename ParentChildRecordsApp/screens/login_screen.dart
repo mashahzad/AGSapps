@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           content: const SingleChildScrollView(
             child: Text(
-              "Welcome to Gloria: Family Growth Journal!\n\n"
+              "Welcome to Gloria: Family Journal!\n\n"
                   "Created with love by the AGS team, this app helps parents track, preserve, "
                   "and cherish every precious milestone in their children's growth and daily family life.\n\n"
                   "Thank you for letting us be part of your family's journey!",
@@ -148,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "Family Growth Journal",
+                          "Family Journal",
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 20,
