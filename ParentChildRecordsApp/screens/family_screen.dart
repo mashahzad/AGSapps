@@ -347,9 +347,9 @@ class _FamilyScreenState extends State<FamilyScreen>
   Widget _buildDonutChartCard() {
     final double total = (_meSec + _spouseSec + _kidsSec).toDouble();
 
-    final double mePercentage = total > 0 ? (_meSec / total) * 100 : 33.3;
-    final double spousePercentage = total > 0 ? (_spouseSec / total) * 100 : 33.3;
-    final double kidsPercentage = total > 0 ? (_kidsSec / total) * 100 : 33.4;
+    final double mePercentage = total > 0 ? (_meSec / total) * 100 : 33.0;
+    final double spousePercentage = total > 0 ? (_spouseSec / total) * 100 : 33.0;
+    final double kidsPercentage = total > 0 ? (_kidsSec / total) * 100 : 34.0;
 
     final Color meColor = _isGreyState ? Colors.grey.shade400 : Colors.indigo;
     final Color spouseColor = _isGreyState ? Colors.grey.shade600 : Colors.teal;
@@ -421,7 +421,7 @@ class _FamilyScreenState extends State<FamilyScreen>
                   ),
                   Center(
                     child: Text(
-                      _isGreyState ? "Reset Mode" : "Time Spent",
+                      _isGreyState ? "Reset Mode" : "My Time",
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
