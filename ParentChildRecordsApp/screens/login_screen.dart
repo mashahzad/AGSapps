@@ -219,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: Colors.white.withOpacity(0.9),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: _isAccepted
+                    onPressed: true //yoho changed _isAccepted to always "true" so to open description regardless
                         ? () {
                       try {
                         Navigator.pushNamed(context, '/description');

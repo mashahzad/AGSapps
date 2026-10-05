@@ -50,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 letterSpacing: 0.8,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             const Text(
               "By",
               textAlign: TextAlign.center,
