@@ -148,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "Family Journal",
+                          "The Family Journal",
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 20,
@@ -204,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? () => Navigator.pushReplacementNamed(context, '/family')
                         : null,
                     child: const Text(
-                      "Start Recording Your Memories",
+                      "Record Your Memories",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.green,
@@ -229,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
                         : null,
                     child: const Text(
-                      "Know more about this App",
+                      "Know more about the App",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.indigo,
@@ -239,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const Spacer(),
                   const Text(
-                    "Made by AGS team",
+                    "Apps by AGS",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
