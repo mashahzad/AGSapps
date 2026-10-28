@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:image_picker/image_picker.dart';
 import '../database/database_helper.dart';
 import '../services/time_tracker.dart';
 import '../widgets/database_grid_tile.dart';
@@ -17,11 +19,13 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   List<Map<String, String>> _notifications = [];
   bool _isLoading = true;
 
+  int? _parentId;
   String _parentName = 'Parent';
   String _parentRelation = 'Parent';
   String _parentWork = 'Not specified';
   String _parentPhone = 'N/A';
   String _parentPrefix = '';
+  String? _imagePath;
 
   TimeTracker? _tracker;
   bool _isCurrentUser = false;
@@ -30,13 +34,15 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
-
+    print("DEBUG: Parent ID is: $_parentId");
     if (args is Map) {
+      _parentId = args['id'] as int?;
       _parentName = args['name']?.toString() ?? 'Parent';
       _parentRelation = args['relation']?.toString() ?? 'Parent';
       _parentWork = args['work']?.toString() ?? 'Not specified';
       _parentPhone = args['phone']?.toString() ?? 'N/A';
       _isCurrentUser = args['is_current_user']?.toString() == '1';
+      _imagePath = args['image_path']?.toString();
     } else if (args is String) {
       _parentName = args;
     }
@@ -155,11 +161,163 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     );
   }
 
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _parentName);
+    final relationController = TextEditingController(text: _parentRelation);
+    final workController = TextEditingController(text: _parentWork);
+    final phoneController = TextEditingController(text: _parentPhone);
+    String? tempImagePath = _imagePath;
+    final ImagePicker picker = ImagePicker();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Edit Profile"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Colors.teal.shade100,
+                            backgroundImage: (tempImagePath != null && tempImagePath!.isNotEmpty)
+                                ? FileImage(File(tempImagePath!)) as ImageProvider
+                                : null,
+                            child: (tempImagePath == null || tempImagePath!.isEmpty)
+                                ? const Icon(Icons.person, size: 40, color: Colors.teal)
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: InkWell(
+                              onTap: () async {
+                                final XFile? image = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                  imageQuality: 80,
+                                );
+                                if (image != null) {
+                                  setDialogState(() {
+                                    tempImagePath = image.path;
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.teal,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: "Full Name"),
+                    ),
+                    TextField(
+                      controller: relationController,
+                      decoration: const InputDecoration(labelText: "Relation"),
+                    ),
+                    TextField(
+                      controller: workController,
+                      decoration: const InputDecoration(labelText: "Occupation"),
+                    ),
+                    TextField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(labelText: "Phone Number"),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isNotEmpty && _parentId != null) {
+                      final updatedData = {
+                        'id': _parentId!,
+                        'name': nameController.text.trim(),
+                        'relation': relationController.text.trim(),
+                        'work': workController.text.trim(),
+                        'phone': phoneController.text.trim(),
+                        'type': 'parent',
+                        'is_current_user': _isCurrentUser ? 1 : 0,
+                        'image_path': tempImagePath ?? '',
+                      };
+
+                      await DatabaseHelper.instance.updateFamilyMember(updatedData);
+
+                      setState(() {
+                        _parentName = updatedData['name'] as String;
+                        _parentRelation = updatedData['relation'] as String;
+                        _parentWork = updatedData['work'] as String;
+                        _parentPhone = updatedData['phone'] as String;
+                        _imagePath = updatedData['image_path'] as String;
+                        _parentPrefix = _parentName.toLowerCase().replaceAll(' ', '_');
+                      });
+
+                      if (mounted) {
+                        Navigator.pop(dialogContext); // Close dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Saved! Refresh page to view changes"),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text("Save"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("$_parentName's Dashboard"),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'edit') {
+                _showEditProfileDialog();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, color: Colors.teal, size: 20),
+                    SizedBox(width: 10),
+                    Text("Edit Profile"),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: PageView(
         controller: _pageController,
@@ -200,18 +358,19 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               padding: const EdgeInsets.all(12.0),
               child: Row(
                 children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.teal.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.teal.shade100,
+                    backgroundImage: (_imagePath != null && _imagePath!.isNotEmpty)
+                        ? FileImage(File(_imagePath!)) as ImageProvider
+                        : null,
+                    child: (_imagePath == null || _imagePath!.isEmpty)
+                        ? Icon(
                       Icons.person,
-                      size: 40,
+                      size: 35,
                       color: _isCurrentUser ? Colors.indigo : Colors.teal,
-                    ),
+                    )
+                        : null,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -252,7 +411,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   curve: Curves.easeInOut,
                 );
               },
-              child: const Text("View & Edit Details"),
+              child: const Text("View & Add Memories"),
             ),
           ),
           const Divider(height: 30),

@@ -344,7 +344,143 @@ class _FamilyScreenState extends State<FamilyScreen>
     return const AssetImage('assets/images/familybg.jpg');
   }
 
-  Widget _buildDonutChartCard() {
+  // Tap-to-Enlarge Modal Trigger
+  void _showChartHistoryModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Time-Spent History",
+                    style: TextStyle(
+                      fontFamily: 'Fredoka',
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B4D3E),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Enlarged Today's Breakdown
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F9F6),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Today",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 220,
+                          child: _buildDonutChartWidget(isEnlarged: true),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Past 7 Days Section header
+                  const Text(
+                    "Past 7 Days",
+                    style: TextStyle(
+                      fontFamily: 'Fredoka',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B4D3E),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Fetch and list past 7 days stats
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: DatabaseHelper.instance.getPast7DaysStats(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text("No past records found yet."),
+                        );
+                      }
+
+                      final pastDays = snapshot.data!;
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: pastDays.length,
+                        itemBuilder: (context, index) {
+                          final dayData = pastDays[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: Color(0xFFE8F5E9),
+                                child: Icon(Icons.calendar_today, color: Color(0xFF2E7D32), size: 20),
+                              ),
+                              title: Text("Date: ${dayData['date'] ?? 'N/A'}" ),
+                              subtitle: Text("Me: ${dayData['me_seconds']}s | Spouse: ${dayData['spouse_seconds']}s | Kids: ${dayData['kids_seconds']}s"),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Reusable Donut Chart Builder Widget (supports enlarged mode)
+  Widget _buildDonutChartWidget({bool isEnlarged = false}) {
     final double total = (_meSec + _spouseSec + _kidsSec).toDouble();
 
     final double mePercentage = total > 0 ? (_meSec / total) * 100 : 33.0;
@@ -355,93 +491,101 @@ class _FamilyScreenState extends State<FamilyScreen>
     final Color spouseColor = _isGreyState ? Colors.grey.shade600 : Colors.teal;
     final Color kidsColor = _isGreyState ? Colors.grey.shade800 : Colors.pink;
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.all(16),
-      color: Colors.white.withOpacity(0.60),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              _isGreyState ? "Time Spent Overview (New Day)" : "Time Spent Overview Today",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: _isGreyState ? Colors.grey.shade700 : Colors.indigo,
-              ),
+    return Column(
+      children: [
+        if (!isEnlarged)
+          Text(
+            _isGreyState ? "Time Spent Overview (New Day)" : "Time Spent Overview Today",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: _isGreyState ? Colors.grey.shade700 : Colors.indigo,
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 160,
-              child: Stack(
-                children: [
-                  PieChart(
-                    PieChartData(
-                      sectionsSpace: 3,
-                      centerSpaceRadius: 50,
-                      startDegreeOffset: -90,
-                      sections: [
-                        PieChartSectionData(
-                          color: meColor,
-                          value: mePercentage,
-                          title: '${mePercentage.toStringAsFixed(0)}%',
-                          radius: 30,
-                          titleStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        PieChartSectionData(
-                          color: spouseColor,
-                          value: spousePercentage,
-                          title: '${spousePercentage.toStringAsFixed(0)}%',
-                          radius: 30,
-                          titleStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        PieChartSectionData(
-                          color: kidsColor,
-                          value: kidsPercentage,
-                          title: '${kidsPercentage.toStringAsFixed(0)}%',
-                          radius: 30,
-                          titleStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Center(
-                    child: Text(
-                      _isGreyState ? "Reset Mode" : "My Time",
-                      style: TextStyle(
-                        fontSize: 14,
+          ),
+        if (!isEnlarged) const SizedBox(height: 12),
+        SizedBox(
+          height: isEnlarged ? 180 : 160,
+          child: Stack(
+            children: [
+              PieChart(
+                PieChartData(
+                  sectionsSpace: 3,
+                  centerSpaceRadius: isEnlarged ? 55 : 50,
+                  startDegreeOffset: -90,
+                  sections: [
+                    PieChartSectionData(
+                      color: meColor,
+                      value: mePercentage,
+                      title: '${mePercentage.toStringAsFixed(0)}%',
+                      radius: isEnlarged ? 35 : 30,
+                      titleStyle: TextStyle(
+                        fontSize: isEnlarged ? 13 : 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade900,
+                        color: Colors.white,
                       ),
                     ),
-                  ),
-                ],
+                    PieChartSectionData(
+                      color: spouseColor,
+                      value: spousePercentage,
+                      title: '${spousePercentage.toStringAsFixed(0)}%',
+                      radius: isEnlarged ? 35 : 30,
+                      titleStyle: TextStyle(
+                        fontSize: isEnlarged ? 13 : 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    PieChartSectionData(
+                      color: kidsColor,
+                      value: kidsPercentage,
+                      title: '${kidsPercentage.toStringAsFixed(0)}%',
+                      radius: isEnlarged ? 35 : 30,
+                      titleStyle: TextStyle(
+                        fontSize: isEnlarged ? 13 : 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _ChartLegendItem(color: meColor, label: "Me"),
-                _ChartLegendItem(color: spouseColor, label: "Spouse"),
-                _ChartLegendItem(color: kidsColor, label: "Kids"),
-              ],
-            ),
+              Center(
+                child: Text(
+                  _isGreyState ? "Reset Mode" : "My Time",
+                  style: TextStyle(
+                    fontSize: isEnlarged ? 15 : 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _ChartLegendItem(color: meColor, label: "Me"),
+            _ChartLegendItem(color: spouseColor, label: "Spouse"),
+            _ChartLegendItem(color: kidsColor, label: "Kids"),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDonutChartCard() {
+    return GestureDetector(
+      onTap: () => _showChartHistoryModal(context),
+      child: Card(
+        elevation: 2,
+        margin: const EdgeInsets.all(16),
+        color: Colors.white.withOpacity(0.60),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _buildDonutChartWidget(isEnlarged: false),
         ),
       ),
     );
@@ -454,7 +598,7 @@ class _FamilyScreenState extends State<FamilyScreen>
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 70, // Expanded height to accommodate the larger font sizes cleanly
+        toolbarHeight: 70,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -592,6 +736,7 @@ class _FamilyScreenState extends State<FamilyScreen>
       itemBuilder: (context, index) {
         final member = members[index];
         final bool isCurrentUser = (member['is_current_user'] ?? 0) == 1;
+        final String? imagePath = member['image_path'];
 
         return Card(
           elevation: 2,
@@ -599,15 +744,21 @@ class _FamilyScreenState extends State<FamilyScreen>
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: CircleAvatar(
+              radius: 24,
               backgroundColor: isKid
                   ? Colors.pink.shade100
                   : (isCurrentUser ? Colors.indigo.shade100 : Colors.teal.shade100),
-              child: Icon(
+              backgroundImage: (imagePath != null && imagePath.isNotEmpty)
+                  ? FileImage(File(imagePath)) as ImageProvider
+                  : null,
+              child: (imagePath == null || imagePath.isEmpty)
+                  ? Icon(
                 isKid ? Icons.child_care : Icons.person,
                 color: isKid
                     ? Colors.pink
                     : (isCurrentUser ? Colors.indigo : Colors.teal),
-              ),
+              )
+                  : null,
             ),
             title: Row(
               children: [
@@ -642,9 +793,44 @@ class _FamilyScreenState extends State<FamilyScreen>
             isThreeLine: true,
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () async {
-                await DatabaseHelper.instance.deleteFamilyMember(member['id']);
-                _loadData();
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (dialogContext) {
+                    return AlertDialog(
+                      title: const Text("Delete Member"),
+                      content: Text(
+                        "Are you sure you want to delete ${member['name']}? This action cannot be undone.",
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: const Text("Cancel"),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () async {
+                            await DatabaseHelper.instance.deleteFamilyMember(member['id']);
+                            if (mounted) {
+                              Navigator.pop(dialogContext);
+                              _loadData();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("${member['name']} was deleted."),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text("Delete"),
+                        ),
+                      ],
+                    );
+                  },
+                );
               },
             ),
             onTap: () {
@@ -653,11 +839,10 @@ class _FamilyScreenState extends State<FamilyScreen>
                   context,
                   '/kid_dashboard',
                   arguments: {
+                    'id': member['id'],
                     'name': member['name'] ?? 'Kid',
-                    'age': (member['work'] != null &&
-                        member['work'].toString().isNotEmpty)
-                        ? member['work']
-                        : 'Not specified',
+                    'age': member['work'] ?? 'Not specified',
+                    'image_path': member['image_path'] ?? '',
                   },
                 ).then((_) => _loadData());
               } else {
@@ -665,11 +850,13 @@ class _FamilyScreenState extends State<FamilyScreen>
                   context,
                   '/parent_dashboard',
                   arguments: {
+                    'id': member['id'],
                     'name': member['name'],
                     'relation': member['relation'],
                     'work': member['work'],
                     'phone': member['phone'],
                     'is_current_user': member['is_current_user'] ?? 0,
+                    'image_path': member['image_path'] ?? '',
                   },
                 ).then((_) => _loadData());
               }

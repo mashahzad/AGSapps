@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:image_picker/image_picker.dart';
 import '../database/database_helper.dart';
 import '../services/time_tracker.dart';
 import '../widgets/database_grid_tile.dart';
@@ -18,8 +20,10 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
   bool _isLoading = true;
   String _kidPrefix = '';
 
+  int? _kidId;
   String _kidName = 'Kid';
   String _kidAge = 'Not specified';
+  String? _imagePath;
 
   TimeTracker? _tracker;
 
@@ -29,8 +33,10 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
 
     if (args is Map) {
+      _kidId = args['id'] as int?;
       _kidName = args['name']?.toString() ?? 'Kid';
       _kidAge = args['age']?.toString() ?? 'Not specified';
+      _imagePath = args['image_path']?.toString();
     } else if (args is String) {
       _kidName = args;
     }
@@ -149,11 +155,151 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
     );
   }
 
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _kidName);
+    final ageController = TextEditingController(text: _kidAge);
+    String? tempImagePath = _imagePath;
+    final ImagePicker picker = ImagePicker();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Edit Child Profile"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Colors.pink.shade100,
+                            backgroundImage: (tempImagePath != null && tempImagePath!.isNotEmpty)
+                                ? FileImage(File(tempImagePath!)) as ImageProvider
+                                : null,
+                            child: (tempImagePath == null || tempImagePath!.isEmpty)
+                                ? const Icon(Icons.child_care, size: 40, color: Colors.pink)
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: InkWell(
+                              onTap: () async {
+                                final XFile? image = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                  imageQuality: 80,
+                                );
+                                if (image != null) {
+                                  setDialogState(() {
+                                    tempImagePath = image.path;
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.pink,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: "Child Name"),
+                    ),
+                    TextField(
+                      controller: ageController,
+                      decoration: const InputDecoration(labelText: "Age / Details"),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isNotEmpty && _kidId != null) {
+                      final updatedData = {
+                        'id': _kidId!,
+                        'name': nameController.text.trim(),
+                        'relation': 'Child',
+                        'work': ageController.text.trim(),
+                        'phone': 'N/A',
+                        'type': 'kid',
+                        'is_current_user': 0,
+                        'image_path': tempImagePath ?? '',
+                      };
+
+                      await DatabaseHelper.instance.updateFamilyMember(updatedData);
+
+                      setState(() {
+                        _kidName = updatedData['name'] as String;
+                        _kidAge = updatedData['work'] as String;
+                        _imagePath = updatedData['image_path'] as String;
+                        _kidPrefix = _kidName.toLowerCase().replaceAll(' ', '_');
+                      });
+
+                      if (mounted) {
+                        Navigator.pop(dialogContext); // Close dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Saved! Refresh page to view changes"),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text("Save"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("$_kidName's Dashboard"),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'edit') {
+                _showEditProfileDialog();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, color: Colors.pink, size: 20),
+                    SizedBox(width: 10),
+                    Text("Edit Profile"),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: PageView(
         controller: _pageController,
@@ -199,14 +345,15 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
               padding: const EdgeInsets.all(12.0),
               child: Row(
                 children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.person, size: 40, color: Colors.grey),
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.pink.shade100,
+                    backgroundImage: (_imagePath != null && _imagePath!.isNotEmpty)
+                        ? FileImage(File(_imagePath!)) as ImageProvider
+                        : null,
+                    child: (_imagePath == null || _imagePath!.isEmpty)
+                        ? const Icon(Icons.child_care, size: 35, color: Colors.pink)
+                        : null,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -243,7 +390,7 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                   curve: Curves.easeInOut,
                 );
               },
-              child: const Text("View & Edit Details"),
+              child: const Text("View & Add Memories"),
             ),
           ),
           const Divider(height: 30),

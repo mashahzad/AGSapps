@@ -14,6 +14,32 @@ class DatabaseHelper {
     return _database!;
   }
 
+  //update data in dashboards
+  Future<int> updateFamilyMember(Map<String, dynamic> row) async {
+    final db = await database;
+    int id = row['id'];
+    return await db.update(
+      'family_members',
+      row,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Add this method here:
+  Future<List<Map<String, dynamic>>> getPast7DaysStats() async {
+    final db = await database;
+
+    // Replace 'daily_stats' with your actual table name if it's named differently
+    final result = await db.rawQuery('''
+      SELECT * FROM daily_stats 
+      ORDER BY date DESC 
+      LIMIT 7
+    ''');
+
+    return result;
+  }
+
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
@@ -36,16 +62,17 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE family_members (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        relation TEXT,
-        work TEXT,
-        phone TEXT,
-        type TEXT,
-        is_current_user TEXT DEFAULT '0'
-      )
-    ''');
+    CREATE TABLE family_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      relation TEXT,
+      work TEXT,
+      phone TEXT,
+      type TEXT,
+      is_current_user INTEGER,
+      image_path TEXT
+    )
+  ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
