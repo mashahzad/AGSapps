@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -14,39 +13,13 @@ class DatabaseHelper {
     return _database!;
   }
 
-  //update data in dashboards
-  Future<int> updateFamilyMember(Map<String, dynamic> row) async {
-    final db = await database;
-    int id = row['id'];
-    return await db.update(
-      'family_members',
-      row,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  // Add this method here:
-  Future<List<Map<String, dynamic>>> getPast7DaysStats() async {
-    final db = await database;
-
-    // Replace 'daily_stats' with your actual table name if it's named differently
-    final result = await db.rawQuery('''
-      SELECT * FROM daily_stats 
-      ORDER BY date DESC 
-      LIMIT 7
-    ''');
-
-    return result;
-  }
-
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -62,23 +35,71 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-    CREATE TABLE family_members (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      relation TEXT,
-      work TEXT,
-      phone TEXT,
-      type TEXT,
-      is_current_user INTEGER,
-      image_path TEXT
-    )
-  ''');
+      CREATE TABLE family_members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        relation TEXT,
+        work TEXT,
+        phone TEXT,
+        type TEXT,
+        is_current_user INTEGER,
+        image_path TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE daily_stats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT UNIQUE,
+        me_seconds INTEGER,
+        spouse_seconds INTEGER,
+        kids_seconds INTEGER,
+        total_time INTEGER,
+        is_grey_state INTEGER
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute("ALTER TABLE family_members ADD COLUMN is_current_user TEXT DEFAULT '0'");
     }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS daily_stats (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT UNIQUE,
+          me_seconds INTEGER,
+          spouse_seconds INTEGER,
+          kids_seconds INTEGER,
+          total_time INTEGER,
+          is_grey_state INTEGER
+        )
+      ''');
+    }
+  }
+
+  // --- Dashboard Updates ---
+  Future<int> updateFamilyMember(Map<String, dynamic> row) async {
+    final db = await database;
+    int id = row['id'];
+    return await db.update(
+      'family_members',
+      row,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // --- Historical Stats Query ---
+  Future<List<Map<String, dynamic>>> getPast7DaysStats() async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT * FROM daily_stats 
+      ORDER BY date DESC 
+      LIMIT 7
+    ''');
+    return result;
   }
 
   // --- Family Members CRUD ---
@@ -154,46 +175,36 @@ class DatabaseHelper {
     await insertOrUpdateRecord('family_background', 'Family Background', path);
   }
 
-  // --- Midnight Reset & Daily Stats ---
+  // --- Streamlined Daily Stats (Using daily_stats table exclusively) ---
   Future<Map<String, dynamic>> getOrResetDailyTimeStats() async {
+    final db = await database;
     final todayStr = DateTime.now().toString().split(' ')[0]; // YYYY-MM-DD
-    final record = await getRecord('daily_time_stats');
 
-    if (record == null || record['content'] == null) {
-      final defaultStats = {
-        'date': todayStr,
-        'me_seconds': 100,
-        'spouse_seconds': 100,
-        'kids_seconds': 100,
-        'is_grey_state': 1,
-      };
-      await insertOrUpdateRecord('daily_time_stats', 'Time Stats', jsonEncode(defaultStats));
-      return defaultStats;
+    final maps = await db.query(
+      'daily_stats',
+      where: 'date = ?',
+      whereArgs: [todayStr],
+    );
+
+    if (maps.isNotEmpty) {
+      return maps.first;
     }
 
-    try {
-      final Map<String, dynamic> data = jsonDecode(record['content']);
-      if (data['date'] != todayStr) {
-        final resetStats = {
-          'date': todayStr,
-          'me_seconds': 100,
-          'spouse_seconds': 100,
-          'kids_seconds': 100,
-          'is_grey_state': 1,
-        };
-        await insertOrUpdateRecord('daily_time_stats', 'Time Stats', jsonEncode(resetStats));
-        return resetStats;
-      }
-      return data;
-    } catch (e) {
-      return {
-        'date': todayStr,
-        'me_seconds': 100,
-        'spouse_seconds': 100,
-        'kids_seconds': 100,
-        'is_grey_state': 1,
-      };
-    }
+    final defaultStats = {
+      'date': todayStr,
+      'me_seconds': 100,
+      'spouse_seconds': 100,
+      'kids_seconds': 100,
+      'total_time': 300,
+      'is_grey_state': 1,
+    };
+
+    await db.insert(
+      'daily_stats',
+      defaultStats,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return defaultStats;
   }
 
   Future<void> accumulateTimeSpent(String category, int elapsedSeconds) async {
@@ -212,14 +223,53 @@ class DatabaseHelper {
       kidsSec += elapsedSeconds;
     }
 
-    final updatedStats = {
-      'date': DateTime.now().toString().split(' ')[0],
-      'me_seconds': meSec,
-      'spouse_seconds': spouseSec,
-      'kids_seconds': kidsSec,
-      'is_grey_state': 0,
-    };
+    final todayStr = DateTime.now().toString().split(' ')[0];
+    final totalTime = meSec + spouseSec + kidsSec;
 
-    await insertOrUpdateRecord('daily_time_stats', 'Time Stats', jsonEncode(updatedStats));
+    final db = await database;
+    await db.insert(
+      'daily_stats',
+      {
+        'date': todayStr,
+        'me_seconds': meSec,
+        'spouse_seconds': spouseSec,
+        'kids_seconds': kidsSec,
+        'total_time': totalTime,
+        'is_grey_state': 0,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
+
+  /*
+  // =========================================================================
+  // ISOLATED TEST HELPER: REMOVE THIS METHOD AND CALL AFTER TESTING
+  // =========================================================================
+  Future<void> insertMock7DaysDataForTesting() async {
+    final db = await database;
+
+    await db.delete('daily_stats');
+
+    final now = DateTime.now();
+    for (int i = 0; i < 7; i++) {
+      final pastDate = now.subtract(Duration(days: i));
+      final dateString =
+          "${pastDate.year}-${pastDate.month.toString().padLeft(2, '0')}-${pastDate.day.toString().padLeft(2, '0')}";
+
+      await db.insert(
+        'daily_stats',
+        {
+          'date': dateString,
+          'me_seconds': 1200 + (i * 150),
+          'spouse_seconds': 900 + (i * 100),
+          'kids_seconds': 1500 + (i * 200),
+          'total_time': 3600 + (i * 450),
+          'is_grey_state': 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+// =========================================================================
+*/
 }

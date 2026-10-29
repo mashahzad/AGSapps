@@ -72,6 +72,8 @@ class _FamilyScreenState extends State<FamilyScreen>
   }
 
   Future<void> _loadData() async {
+    // Temporary testing call:
+    //await DatabaseHelper.instance.insertMock7DaysDataForTesting();
     final title = await DatabaseHelper.instance.getFamilyTitle();
     final background = await DatabaseHelper.instance.getFamilyBackground();
     final parentRecords = await DatabaseHelper.instance.getFamilyMembers('parent');
@@ -424,7 +426,7 @@ class _FamilyScreenState extends State<FamilyScreen>
                   ),
                   const SizedBox(height: 12),
 
-                  // Fetch and list past 7 days stats
+                  // Fetch and list past 7 days stats with small pie charts
                   FutureBuilder<List<Map<String, dynamic>>>(
                     future: DatabaseHelper.instance.getPast7DaysStats(),
                     builder: (context, snapshot) {
@@ -450,20 +452,84 @@ class _FamilyScreenState extends State<FamilyScreen>
                         itemCount: pastDays.length,
                         itemBuilder: (context, index) {
                           final dayData = pastDays[index];
+                          final int me = dayData['me_seconds'] ?? 0;
+                          final int spouse = dayData['spouse_seconds'] ?? 0;
+                          final int kids = dayData['kids_seconds'] ?? 0;
+                          final double total = (me + spouse + kids).toDouble();
+
+                          final double mePct = total > 0 ? (me / total) * 100 : 33.0;
+                          final double spousePct = total > 0 ? (spouse / total) * 100 : 33.0;
+                          final double kidsPct = total > 0 ? (kids / total) * 100 : 34.0;
+
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
-                            elevation: 0,
+                            elevation: 1,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.grey.shade200),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            child: ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: Color(0xFFE8F5E9),
-                                child: Icon(Icons.calendar_today, color: Color(0xFF2E7D32), size: 20),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                children: [
+                                  // Small Pie Chart
+                                  SizedBox(
+                                    width: 70,
+                                    height: 70,
+                                    child: PieChart(
+                                      PieChartData(
+                                        sectionsSpace: 2,
+                                        centerSpaceRadius: 18,
+                                        startDegreeOffset: -90,
+                                        sections: [
+                                          PieChartSectionData(
+                                            color: Colors.indigo,
+                                            value: mePct,
+                                            title: '',
+                                            radius: 14,
+                                          ),
+                                          PieChartSectionData(
+                                            color: Colors.teal,
+                                            value: spousePct,
+                                            title: '',
+                                            radius: 14,
+                                          ),
+                                          PieChartSectionData(
+                                            color: Colors.pink,
+                                            value: kidsPct,
+                                            title: '',
+                                            radius: 14,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Date & Percentage Breakdowns
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Date: ${dayData['date'] ?? 'N/A'}",
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            _miniLegend("Me: ${mePct.toStringAsFixed(0)}%", Colors.indigo),
+                                            _miniLegend("Spouse: ${spousePct.toStringAsFixed(0)}%", Colors.teal),
+                                            _miniLegend("Kids: ${kidsPct.toStringAsFixed(0)}%", Colors.pink),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              title: Text("Date: ${dayData['date'] ?? 'N/A'}" ),
-                              subtitle: Text("Me: ${dayData['me_seconds']}s | Spouse: ${dayData['spouse_seconds']}s | Kids: ${dayData['kids_seconds']}s"),
                             ),
                           );
                         },
@@ -476,6 +542,16 @@ class _FamilyScreenState extends State<FamilyScreen>
           },
         );
       },
+    );
+  }
+
+  Widget _miniLegend(String text, Color color) {
+    return Row(
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+      ],
     );
   }
 
