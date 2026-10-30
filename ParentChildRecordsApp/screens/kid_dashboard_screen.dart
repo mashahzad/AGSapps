@@ -434,8 +434,12 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                           onPressed: () async {
                             await DatabaseHelper.instance.trackTaskCompletion(true);
                             // TODO: Remove task/reminder from local UI state
+                            setState(() {
+                              _notifications.removeAt(index);
+                            });
+                            await _saveNotificationsToDB();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Task marked as completed!')), duration: Duration(seconds: 1)),
+                              const SnackBar(content: Text('Task marked as completed!'), duration: Duration(seconds: 1)),
                             );
                           },
                         ),
@@ -446,8 +450,12 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                           onPressed: () async {
                             await DatabaseHelper.instance.trackTaskCompletion(false);
                             // TODO: Remove task/reminder from local UI state
+                            setState(() {
+                              _notifications.removeAt(index);
+                            });
+                            await _saveNotificationsToDB();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Task marked as incomplete.')), duration: Duration(seconds: 1)),
+                              const SnackBar(content: Text('Task marked as incomplete.'), duration: Duration(seconds: 1)),
                             );
                           },
                         ),
