@@ -58,6 +58,23 @@ class DatabaseHelper {
         is_grey_state INTEGER
       )
     ''');
+
+    // NEW: Weekly Reports Table
+    await db.execute('''
+      CREATE TABLE weekly_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        year INTEGER,
+        week_number INTEGER,
+        memories_count INTEGER DEFAULT 0,
+        tasks_completed INTEGER DEFAULT 0,
+        tasks_incomplete INTEGER DEFAULT 0,
+        me_seconds INTEGER DEFAULT 0,
+        spouse_seconds INTEGER DEFAULT 0,
+        kids_seconds INTEGER DEFAULT 0,
+        time_bias TEXT DEFAULT 'perfect',
+        UNIQUE(year, week_number)
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -76,7 +93,64 @@ class DatabaseHelper {
           is_grey_state INTEGER
         )
       ''');
+      if (oldVersion < 4) {
+        await db.execute('''
+        CREATE TABLE IF NOT EXISTS weekly_reports (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          year INTEGER,
+          week_number INTEGER,
+          memories_count INTEGER DEFAULT 0,
+          tasks_completed INTEGER DEFAULT 0,
+          tasks_incomplete INTEGER DEFAULT 0,
+          me_seconds INTEGER DEFAULT 0,
+          spouse_seconds INTEGER DEFAULT 0,
+          kids_seconds INTEGER DEFAULT 0,
+          time_bias TEXT DEFAULT 'perfect',
+          UNIQUE(year, week_number)
+        )
+      ''');
+      }
     }
+  }
+
+  // --- Weekly Reports & Task Tracking Methods ---
+  int _calculateWeekNumber(DateTime date) {
+    final firstDayOfYear = DateTime(date.year, 1, 1);
+    final daysDifference = date.difference(firstDayOfYear).inDays;
+    return ((daysDifference + firstDayOfYear.weekday) / 7).ceil();
+  }
+
+  Future<void> trackTaskCompletion(bool isCompleted) async {
+    final db = await database;
+    final now = DateTime.now();
+    final year = now.year;
+    final weekNumber = _calculateWeekNumber(now);
+
+    // Upsert weekly report tracking data
+    await db.rawInsert('''
+      INSERT INTO weekly_reports (year, week_number, tasks_completed, tasks_incomplete)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(year, week_number) DO UPDATE SET
+      tasks_completed = tasks_completed + ?,
+      tasks_incomplete = tasks_incomplete + ?
+    ''', [
+      year,
+      weekNumber,
+      isCompleted ? 1 : 0,
+      isCompleted ? 0 : 1,
+      isCompleted ? 1 : 0,
+      isCompleted ? 0 : 1,
+    ]);
+  }
+
+  Future<List<Map<String, dynamic>>> getWeeklyReportsForYear(int year) async {
+    final db = await database;
+    return await db.query(
+      'weekly_reports',
+      where: 'year = ?',
+      whereArgs: [year],
+      orderBy: 'week_number ASC',
+    );
   }
 
   // --- Dashboard Updates ---
@@ -94,11 +168,13 @@ class DatabaseHelper {
   // --- Historical Stats Query ---
   Future<List<Map<String, dynamic>>> getPast7DaysStats() async {
     final db = await database;
+    final todayStr = DateTime.now().toString().split(' ')[0];
     final result = await db.rawQuery('''
       SELECT * FROM daily_stats 
+      WHERE date != ?
       ORDER BY date DESC 
       LIMIT 7
-    ''');
+    ''', [todayStr]);
     return result;
   }
 
@@ -180,6 +256,7 @@ class DatabaseHelper {
     final db = await database;
     final todayStr = DateTime.now().toString().split(' ')[0]; // YYYY-MM-DD
 
+    // Check if today's record already exists in daily_stats
     final maps = await db.query(
       'daily_stats',
       where: 'date = ?',
@@ -190,6 +267,20 @@ class DatabaseHelper {
       return maps.first;
     }
 
+    // If day changed, grab the most recent record or check if we need to archive/reset
+    // Let's check what the latest entry was before today
+    final lastRecords = await db.query(
+      'daily_stats',
+      orderBy: 'date DESC',
+      limit: 1,
+    );
+
+    if (lastRecords.isNotEmpty) {
+      // Ensure the last active day's ending stats are securely committed
+      // (They are already stored as time accumulated, so we just let a fresh row initialize for today)
+    }
+
+    // Initialize fresh default stats for the new day
     final defaultStats = {
       'date': todayStr,
       'me_seconds': 100,

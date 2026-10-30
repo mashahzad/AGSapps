@@ -9,9 +9,15 @@ import 'screens/kid_dashboard_screen.dart';
 import 'screens/activities_screen.dart';
 import 'screens/qna_screen.dart';
 import 'screens/blogs_screen.dart';
+import 'services/notification_service.dart';
+import 'screens/family_reports_screen.dart';
 
-void main() {
+void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notifications
+  await NotificationService.instance.initialize();
+
   runApp(const ParentKidApp());
 }
 
@@ -38,6 +44,7 @@ class ParentKidApp extends StatelessWidget {
         '/activities': (context) => const ActivitiesScreen(),
         '/qna': (context) => const QnAScreen(),
         '/blogs': (context) => const BlogsScreen(),
+        '/family_reports': (context) => const FamilyReportsScreen(),
       },
     );
   }

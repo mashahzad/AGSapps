@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:parent_child_app/screens/family_reports_screen.dart';
 import '../database/database_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/onboarding_dialog.dart';
+import '../services/notification_service.dart';
 
 class FamilyScreen extends StatefulWidget {
   const FamilyScreen({super.key});
@@ -41,6 +43,11 @@ class _FamilyScreenState extends State<FamilyScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstTimeUser();
     });
+    NotificationService.instance.showInstantNotification(
+      id: 0,
+      title: "Gloria",
+      body: "Record Your Memories!",
+    );
   }
 
   @override
@@ -72,8 +79,6 @@ class _FamilyScreenState extends State<FamilyScreen>
   }
 
   Future<void> _loadData() async {
-    // Temporary testing call:
-    //await DatabaseHelper.instance.insertMock7DaysDataForTesting();
     final title = await DatabaseHelper.instance.getFamilyTitle();
     final background = await DatabaseHelper.instance.getFamilyBackground();
     final parentRecords = await DatabaseHelper.instance.getFamilyMembers('parent');
@@ -414,7 +419,7 @@ class _FamilyScreenState extends State<FamilyScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  // Past 7 Days Section header
+                  // Past 7 Days Section header (Excludes Today)
                   const Text(
                     "Past 7 Days",
                     style: TextStyle(
@@ -428,113 +433,116 @@ class _FamilyScreenState extends State<FamilyScreen>
 
                   // Fetch and list past 7 days stats with small pie charts
                   FutureBuilder<List<Map<String, dynamic>>>(
-                    future: DatabaseHelper.instance.getPast7DaysStats(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: CircularProgressIndicator(),
+                  future: DatabaseHelper.instance.getPast7DaysStats(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text("No past records found yet."),
+                      );
+                    }
+
+                    final pastDays = snapshot.data!;
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: pastDays.length,
+                      itemBuilder: (context, index) {
+                        final dayData = pastDays[index];
+                        final int me = dayData['me_seconds'] ?? 0;
+                        final int spouse = dayData['spouse_seconds'] ?? 0;
+                        final int kids = dayData['kids_seconds'] ?? 0;
+                        final double total = (me + spouse + kids).toDouble();
+
+                        final double mePct = total > 0 ? (me / total) * 100 : 33.0;
+                        final double spousePct = total > 0 ? (spouse / total) * 100 : 33.0;
+                        final double kidsPct = total > 0 ? (kids / total) * 100 : 34.0;
+
+                        const Color kidsColor = Colors.pink;
+                        const Color spouseColor = Colors.teal;
+                        const Color meColor = Colors.indigo;
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        );
-                      }
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text("No past records found yet."),
-                        );
-                      }
-
-                      final pastDays = snapshot.data!;
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: pastDays.length,
-                        itemBuilder: (context, index) {
-                          final dayData = pastDays[index];
-                          final int me = dayData['me_seconds'] ?? 0;
-                          final int spouse = dayData['spouse_seconds'] ?? 0;
-                          final int kids = dayData['kids_seconds'] ?? 0;
-                          final double total = (me + spouse + kids).toDouble();
-
-                          final double mePct = total > 0 ? (me / total) * 100 : 33.0;
-                          final double spousePct = total > 0 ? (spouse / total) * 100 : 33.0;
-                          final double kidsPct = total > 0 ? (kids / total) * 100 : 34.0;
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            elevation: 1,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Row(
-                                children: [
-                                  // Small Pie Chart
-                                  SizedBox(
-                                    width: 70,
-                                    height: 70,
-                                    child: PieChart(
-                                      PieChartData(
-                                        sectionsSpace: 2,
-                                        centerSpaceRadius: 18,
-                                        startDegreeOffset: -90,
-                                        sections: [
-                                          PieChartSectionData(
-                                            color: Colors.indigo,
-                                            value: mePct,
-                                            title: '',
-                                            radius: 14,
-                                          ),
-                                          PieChartSectionData(
-                                            color: Colors.teal,
-                                            value: spousePct,
-                                            title: '',
-                                            radius: 14,
-                                          ),
-                                          PieChartSectionData(
-                                            color: Colors.pink,
-                                            value: kidsPct,
-                                            title: '',
-                                            radius: 14,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  // Date & Percentage Breakdowns
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Date: ${dayData['date'] ?? 'N/A'}",
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Row(
+                              children: [
+                                // Small Pie Chart (Sequence: Kids -> Spouse -> Me)
+                                SizedBox(
+                                  width: 70,
+                                  height: 70,
+                                  child: PieChart(
+                                    PieChartData(
+                                      sectionsSpace: 2,
+                                      centerSpaceRadius: 18,
+                                      startDegreeOffset: -90,
+                                      sections: [
+                                        PieChartSectionData(
+                                          color: kidsColor,
+                                          value: kidsPct,
+                                          title: '',
+                                          radius: 14,
                                         ),
-                                        const SizedBox(height: 6),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            _miniLegend("Me: ${mePct.toStringAsFixed(0)}%", Colors.indigo),
-                                            _miniLegend("Spouse: ${spousePct.toStringAsFixed(0)}%", Colors.teal),
-                                            _miniLegend("Kids: ${kidsPct.toStringAsFixed(0)}%", Colors.pink),
-                                          ],
+                                        PieChartSectionData(
+                                          color: spouseColor,
+                                          value: spousePct,
+                                          title: '',
+                                          radius: 14,
+                                        ),
+                                        PieChartSectionData(
+                                          color: meColor,
+                                          value: mePct,
+                                          title: '',
+                                          radius: 14,
                                         ),
                                       ],
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Date: ${dayData['date'] ?? 'N/A'}",
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          _miniLegend("Me: ${mePct.toStringAsFixed(0)}%", meColor),
+                                          _miniLegend("Spouse: ${spousePct.toStringAsFixed(0)}%", spouseColor),
+                                          _miniLegend("Kids: ${kidsPct.toStringAsFixed(0)}%", kidsColor),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      );
-                    },
+                          ),
+                        );
+                      },
+                    );
+                  },
                   ),
                 ],
               ),
@@ -555,7 +563,7 @@ class _FamilyScreenState extends State<FamilyScreen>
     );
   }
 
-  // Reusable Donut Chart Builder Widget (supports enlarged mode)
+  // Reusable Donut Chart Builder Widget (Sequence: Kids -> Spouse -> Me)
   Widget _buildDonutChartWidget({bool isEnlarged = false}) {
     final double total = (_meSec + _spouseSec + _kidsSec).toDouble();
 
@@ -589,10 +597,11 @@ class _FamilyScreenState extends State<FamilyScreen>
                   centerSpaceRadius: isEnlarged ? 55 : 50,
                   startDegreeOffset: -90,
                   sections: [
+                    // Sequence: Kids first, then Spouse, then Me
                     PieChartSectionData(
-                      color: meColor,
-                      value: mePercentage,
-                      title: '${mePercentage.toStringAsFixed(0)}%',
+                      color: kidsColor,
+                      value: kidsPercentage,
+                      title: '${kidsPercentage.toStringAsFixed(0)}%',
                       radius: isEnlarged ? 35 : 30,
                       titleStyle: TextStyle(
                         fontSize: isEnlarged ? 13 : 12,
@@ -612,9 +621,9 @@ class _FamilyScreenState extends State<FamilyScreen>
                       ),
                     ),
                     PieChartSectionData(
-                      color: kidsColor,
-                      value: kidsPercentage,
-                      title: '${kidsPercentage.toStringAsFixed(0)}%',
+                      color: meColor,
+                      value: mePercentage,
+                      title: '${mePercentage.toStringAsFixed(0)}%',
                       radius: isEnlarged ? 35 : 30,
                       titleStyle: TextStyle(
                         fontSize: isEnlarged ? 13 : 12,
@@ -699,6 +708,20 @@ class _FamilyScreenState extends State<FamilyScreen>
           ],
         ),
         actions: [
+          // NEW: Family Reports Icon Button
+          IconButton(
+            icon: const Icon(Icons.newspaper),
+            tooltip: "Family Reports",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FamilyReportsScreen(),
+                ),
+              );
+            },
+          ),
+          // app help or tour
           IconButton(
             icon: const Icon(Icons.help_outline),
             tooltip: "App Tour",
@@ -788,159 +811,159 @@ class _FamilyScreenState extends State<FamilyScreen>
   }
 
   Widget _buildMemberList(List<Map<String, dynamic>> members, {required bool isKid}) {
-    if (members.isEmpty) {
-      return Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.60),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            isKid
-                ? "No kids added yet. Tap '+' to add."
-                : "No parents/Other added yet. Tap '+' to add.",
-            style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w600),
-          ),
-        ),
-      );
-    }
+  if (members.isEmpty) {
+  return Center(
+  child: Container(
+  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  decoration: BoxDecoration(
+  color: Colors.white.withOpacity(0.60),
+  borderRadius: BorderRadius.circular(8),
+  ),
+  child: Text(
+  isKid
+  ? "No kids added yet. Tap '+' to add."
+      : "No parents/Other added yet. Tap '+' to add.",
+  style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w600),
+  ),
+  ),
+  );
+  }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: members.length,
-      itemBuilder: (context, index) {
-        final member = members[index];
-        final bool isCurrentUser = (member['is_current_user'] ?? 0) == 1;
-        final String? imagePath = member['image_path'];
+  return ListView.builder(
+  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  itemCount: members.length,
+  itemBuilder: (context, index) {
+  final member = members[index];
+  final bool isCurrentUser = (member['is_current_user'] ?? 0) == 1;
+  final String? imagePath = member['image_path'];
 
-        return Card(
-          elevation: 2,
-          color: Colors.white.withOpacity(0.60),
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              radius: 24,
-              backgroundColor: isKid
-                  ? Colors.pink.shade100
-                  : (isCurrentUser ? Colors.indigo.shade100 : Colors.teal.shade100),
-              backgroundImage: (imagePath != null && imagePath.isNotEmpty)
-                  ? FileImage(File(imagePath)) as ImageProvider
-                  : null,
-              child: (imagePath == null || imagePath.isEmpty)
-                  ? Icon(
-                isKid ? Icons.child_care : Icons.person,
-                color: isKid
-                    ? Colors.pink
-                    : (isCurrentUser ? Colors.indigo : Colors.teal),
-              )
-                  : null,
-            ),
-            title: Row(
-              children: [
-                Text(
-                  member['name'],
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                if (!isKid && isCurrentUser) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.indigo.shade50.withOpacity(0.60),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.indigo.shade200),
-                    ),
-                    child: const Text(
-                      'ME',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            subtitle: Text(
-              "${member['relation']} • ${member['work']}\nPhone: ${member['phone']}",
-            ),
-            isThreeLine: true,
-            trailing: IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (dialogContext) {
-                    return AlertDialog(
-                      title: const Text("Delete Member"),
-                      content: Text(
-                        "Are you sure you want to delete ${member['name']}? This action cannot be undone.",
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(dialogContext),
-                          child: const Text("Cancel"),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () async {
-                            await DatabaseHelper.instance.deleteFamilyMember(member['id']);
-                            if (mounted) {
-                              Navigator.pop(dialogContext);
-                              _loadData();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("${member['name']} was deleted."),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          },
-                          child: const Text("Delete"),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-            onTap: () {
-              if (isKid) {
-                Navigator.pushNamed(
-                  context,
-                  '/kid_dashboard',
-                  arguments: {
-                    'id': member['id'],
-                    'name': member['name'] ?? 'Kid',
-                    'age': member['work'] ?? 'Not specified',
-                    'image_path': member['image_path'] ?? '',
-                  },
-                ).then((_) => _loadData());
-              } else {
-                Navigator.pushNamed(
-                  context,
-                  '/parent_dashboard',
-                  arguments: {
-                    'id': member['id'],
-                    'name': member['name'],
-                    'relation': member['relation'],
-                    'work': member['work'],
-                    'phone': member['phone'],
-                    'is_current_user': member['is_current_user'] ?? 0,
-                    'image_path': member['image_path'] ?? '',
-                  },
-                ).then((_) => _loadData());
-              }
-            },
-          ),
-        );
-      },
-    );
+  return Card(
+  elevation: 2,
+  color: Colors.white.withOpacity(0.60),
+  margin: const EdgeInsets.only(bottom: 12),
+  child: ListTile(
+  leading: CircleAvatar(
+  radius: 24,
+  backgroundColor: isKid
+  ? Colors.pink.shade100
+      : (isCurrentUser ? Colors.indigo.shade100 : Colors.teal.shade100),
+  backgroundImage: (imagePath != null && imagePath.isNotEmpty)
+  ? FileImage(File(imagePath)) as ImageProvider
+      : null,
+  child: (imagePath == null || imagePath.isEmpty)
+  ? Icon(
+  isKid ? Icons.child_care : Icons.person,
+  color: isKid
+  ? Colors.pink
+      : (isCurrentUser ? Colors.indigo : Colors.teal),
+  )
+      : null,
+  ),
+  title: Row(
+  children: [
+  Text(
+  member['name'],
+  style: const TextStyle(fontWeight: FontWeight.bold),
+  ),
+  if (!isKid && isCurrentUser) ...[
+  const SizedBox(width: 8),
+  Container(
+  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+  decoration: BoxDecoration(
+  color: Colors.indigo.shade50.withOpacity(0.60),
+  borderRadius: BorderRadius.circular(4),
+  border: Border.all(color: Colors.indigo.shade200),
+  ),
+  child: const Text(
+  'ME',
+  style: TextStyle(
+  fontSize: 10,
+  fontWeight: FontWeight.bold,
+  color: Colors.indigo,
+  ),
+  ),
+  ),
+  ],
+  ],
+  ),
+  subtitle: Text(
+  "${member['relation']} • ${member['work']}\nPhone: ${member['phone']}",
+  ),
+  isThreeLine: true,
+  trailing: IconButton(
+  icon: const Icon(Icons.delete_outline, color: Colors.red),
+  onPressed: () {
+  showDialog(
+  context: context,
+  builder: (dialogContext) {
+  return AlertDialog(
+  title: const Text("Delete Member"),
+  content: Text(
+  "Are you sure you want to delete ${member['name']}? This action cannot be undone.",
+  ),
+  actions: [
+  TextButton(
+  onPressed: () => Navigator.pop(dialogContext),
+  child: const Text("Cancel"),
+  ),
+  ElevatedButton(
+  style: ElevatedButton.styleFrom(
+  backgroundColor: Colors.red,
+  foregroundColor: Colors.white,
+  ),
+  onPressed: () async {
+  await DatabaseHelper.instance.deleteFamilyMember(member['id']);
+  if (mounted) {
+  Navigator.pop(dialogContext);
+  _loadData();
+  ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+  content: Text("${member['name']} was deleted."),
+  duration: const Duration(seconds: 2),
+  ),
+  );
+  }
+  },
+  child: const Text("Delete"),
+  ),
+  ],
+  );
+  },
+  );
+  },
+  ),
+  onTap: () {
+  if (isKid) {
+  Navigator.pushNamed(
+  context,
+  '/kid_dashboard',
+  arguments: {
+  'id': member['id'],
+  'name': member['name'] ?? 'Kid',
+  'age': member['work'] ?? 'Not specified',
+  'image_path': member['image_path'] ?? '',
+  },
+  ).then((_) => _loadData());
+  } else {
+  Navigator.pushNamed(
+  context,
+  '/parent_dashboard',
+  arguments: {
+  'id': member['id'],
+  'name': member['name'],
+  'relation': member['relation'],
+  'work': member['work'],
+  'phone': member['phone'],
+  'is_current_user': member['is_current_user'] ?? 0,
+  'image_path': member['image_path'] ?? '',
+  },
+  ).then((_) => _loadData());
+  }
+  },
+  ),
+  );
+  },
+  );
   }
 }
 

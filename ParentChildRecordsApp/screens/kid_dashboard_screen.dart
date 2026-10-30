@@ -423,7 +423,37 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                     leading: const Icon(Icons.notifications_active, color: Colors.orange),
                     title: Text(item['title'] ?? ''),
                     subtitle: Text(item['subtitle'] ?? ''),
-                    trailing: IconButton(
+
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Tick Mark (Completed)
+                        IconButton(
+                          icon: const Icon(Icons.check_circle, color: Colors.green),
+                          tooltip: "Mark Completed",
+                          onPressed: () async {
+                            await DatabaseHelper.instance.trackTaskCompletion(true);
+                            // TODO: Remove task/reminder from local UI state
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Task marked as completed!')), duration: Duration(seconds: 1)),
+                            );
+                          },
+                        ),
+                        // Cross Mark (Incomplete / Dismissed)
+                        IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.red),
+                          tooltip: "Mark Incomplete / Dismiss",
+                          onPressed: () async {
+                            await DatabaseHelper.instance.trackTaskCompletion(false);
+                            // TODO: Remove task/reminder from local UI state
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Task marked as incomplete.')), duration: Duration(seconds: 1)),
+                            );
+                          },
+                        ),
+                      ],
+                    )
+                    /*IconButton(
                       icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
                       onPressed: () async {
                         setState(() {
@@ -431,7 +461,8 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                         });
                         await _saveNotificationsToDB();
                       },
-                    ),
+                    ),*/
+
                   ),
                 );
               },
