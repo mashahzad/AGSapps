@@ -68,7 +68,49 @@ class ParentKidApp extends StatelessWidget {
   }
 }
 
-
+/*
+return MaterialApp(
+          title: 'Gloria Family Journal',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            primarySwatch: Colors.indigo,
+            useMaterial3: true,
+            brightness: Brightness.light,
+          ),
+          // CUSTOM SOFT DARK THEME
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF121212), // Comfortable deep background
+            cardColor: const Color(0xFF1E1E1E), // Muted dark card color
+            colorScheme: ColorScheme.dark(
+              primary: const Color(0xFF7986CB), // Muted Indigo (softened light primary)
+              secondary: const Color(0xFF81C784), // Softened Green
+              surface: const Color(0xFF1E1E1E), // Soft dark surface instead of pure white/bright grey
+              onSurface: const Color(0xFFE0E0E0), // Soft off-white text to reduce eye strain
+            ),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF1F1F1F),
+              foregroundColor: Color(0xFFE0E0E0),
+            ),
+          ),
+          themeMode: currentMode,
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const SplashScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/description': (context) => const DescriptionScreen(),
+            '/family': (context) => const FamilyScreen(),
+            '/parent_dashboard': (context) => const ParentDashboardScreen(),
+            '/kid_dashboard': (context) => const KidDashboardScreen(),
+            '/activities': (context) => const ActivitiesScreen(),
+            '/qna': (context) => const QnAScreen(),
+            '/blogs': (context) => const BlogsScreen(),
+            '/family_reports': (context) => const FamilyReportsScreen(),
+            '/about_app': (context) => AboutAppScreen(themeNotifier: themeNotifier),
+          },
+        );
+*/
 
 /*
 lib/
