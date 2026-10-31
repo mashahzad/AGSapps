@@ -1,3 +1,4 @@
+//List<Map<String, String>> _notifications = [];
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -383,7 +384,9 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                // Track memory visit count in weekly reports
+                await DatabaseHelper.instance.trackMemoryVisit();
                 _pageController.animateToPage(
                   1,
                   duration: const Duration(milliseconds: 300),
@@ -433,7 +436,6 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                           tooltip: "Mark Completed",
                           onPressed: () async {
                             await DatabaseHelper.instance.trackTaskCompletion(true);
-                            // TODO: Remove task/reminder from local UI state
                             setState(() {
                               _notifications.removeAt(index);
                             });
@@ -449,7 +451,6 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                           tooltip: "Mark Incomplete / Dismiss",
                           onPressed: () async {
                             await DatabaseHelper.instance.trackTaskCompletion(false);
-                            // TODO: Remove task/reminder from local UI state
                             setState(() {
                               _notifications.removeAt(index);
                             });
@@ -460,17 +461,7 @@ class _KidDashboardScreenState extends State<KidDashboardScreen> {
                           },
                         ),
                       ],
-                    )
-                    /*IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                      onPressed: () async {
-                        setState(() {
-                          _notifications.removeAt(index);
-                        });
-                        await _saveNotificationsToDB();
-                      },
-                    ),*/
-
+                    ),
                   ),
                 );
               },

@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:parent_child_app/main.dart';
 import 'package:parent_child_app/screens/family_reports_screen.dart';
 import '../database/database_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/onboarding_dialog.dart';
 import '../services/notification_service.dart';
+import 'package:parent_child_app/screens/about_app_screen.dart';
 
 class FamilyScreen extends StatefulWidget {
   const FamilyScreen({super.key});
@@ -739,6 +741,14 @@ class _FamilyScreenState extends State<FamilyScreen>
                 _showEditTitleDialog();
               } else if (value == 'change_bg') {
                 _showChangeBackgroundDialog();
+              } else if (value == 'about_app') {
+                // NEW: Navigate to About App Screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AboutAppScreen(themeNotifier: themeNotifier),
+                  ),
+                );
               }
             },
             itemBuilder: (BuildContext context) => [
@@ -759,6 +769,17 @@ class _FamilyScreenState extends State<FamilyScreen>
                     Icon(Icons.photo_library, color: Colors.indigo, size: 20),
                     SizedBox(width: 10),
                     Text('Change Background Photo'),
+                  ],
+                ),
+              ),
+              // NEW: About App Popup Menu Option
+              const PopupMenuItem<String>(
+                value: 'about_app',
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.teal, size: 20),
+                    SizedBox(width: 10),
+                    Text('About App'),
                   ],
                 ),
               ),

@@ -404,7 +404,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                // Track memory visit count in weekly reports
+                await DatabaseHelper.instance.trackMemoryVisit();
                 _pageController.animateToPage(
                   1,
                   duration: const Duration(milliseconds: 300),
@@ -445,52 +447,40 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     title: Text(item['title'] ?? ''),
                     subtitle: Text(item['subtitle'] ?? ''),
                     trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Tick Mark (Completed)
-                      IconButton(
-                        icon: const Icon(Icons.check_circle, color: Colors.green),
-                        tooltip: "Mark Completed",
-                        onPressed: () async {
-                          await DatabaseHelper.instance.trackTaskCompletion(true);
-                          // TODO: Remove task/reminder from local UI state
-                          setState(() {
-                            _notifications.removeAt(index);
-                          });
-                          await _saveNotificationsToDB();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Task marked as completed!'), duration: Duration(seconds: 1)),
-                          );
-                        },
-                      ),
-                      // Cross Mark (Incomplete / Dismissed)
-                      IconButton(
-                        icon: const Icon(Icons.cancel, color: Colors.red),
-                        tooltip: "Mark Incomplete / Dismiss",
-                        onPressed: () async {
-                          await DatabaseHelper.instance.trackTaskCompletion(false);
-                          // TODO: Remove task/reminder from local UI state
-                          setState(() {
-                            _notifications.removeAt(index);
-                          });
-                          await _saveNotificationsToDB();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Task marked as incomplete.'), duration: Duration(seconds: 1)),
-                          );
-                        },
-                      ),
-                    ],
-                  )
-
-                    /*IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                      onPressed: () async {
-                        setState(() {
-                          _notifications.removeAt(index);
-                        });
-                        await _saveNotificationsToDB();
-                      },
-                    ),*/
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Tick Mark (Completed)
+                        IconButton(
+                          icon: const Icon(Icons.check_circle, color: Colors.green),
+                          tooltip: "Mark Completed",
+                          onPressed: () async {
+                            await DatabaseHelper.instance.trackTaskCompletion(true);
+                            setState(() {
+                              _notifications.removeAt(index);
+                            });
+                            await _saveNotificationsToDB();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Task marked as completed!'), duration: Duration(seconds: 1)),
+                            );
+                          },
+                        ),
+                        // Cross Mark (Incomplete / Dismissed)
+                        IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.red),
+                          tooltip: "Mark Incomplete / Dismiss",
+                          onPressed: () async {
+                            await DatabaseHelper.instance.trackTaskCompletion(false);
+                            setState(() {
+                              _notifications.removeAt(index);
+                            });
+                            await _saveNotificationsToDB();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Task marked as incomplete.'), duration: Duration(seconds: 1)),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

@@ -77,6 +77,7 @@ class DatabaseHelper {
     ''');
   }
 
+
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute("ALTER TABLE family_members ADD COLUMN is_current_user TEXT DEFAULT '0'");
@@ -141,6 +142,22 @@ class DatabaseHelper {
       isCompleted ? 1 : 0,
       isCompleted ? 0 : 1,
     ]);
+  }
+
+  //memories visits
+  Future<void> trackMemoryVisit() async {
+    final db = await database;
+    final now = DateTime.now();
+    final year = now.year;
+    final weekNumber = _calculateWeekNumber(now);
+
+    // Upsert weekly report memory count
+    await db.rawInsert('''
+      INSERT INTO weekly_reports (year, week_number, memories_count)
+      VALUES (?, ?, 1)
+      ON CONFLICT(year, week_number) DO UPDATE SET
+      memories_count = memories_count + 1
+    ''', [year, weekNumber]);
   }
 
   Future<List<Map<String, dynamic>>> getWeeklyReportsForYear(int year) async {
@@ -214,6 +231,20 @@ class DatabaseHelper {
         whereArgs: [memberId],
       );
     });
+  }
+
+  //yearly reports
+  Future<List<int>> getAvailableYears() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT DISTINCT year FROM weekly_reports ORDER BY year DESC');
+    List<int> years = result.map((row) => row['year'] as int).toList();
+
+    // Always ensure the current year is available as an option
+    final currentYear = DateTime.now().year;
+    if (!years.contains(currentYear)) {
+      years.insert(0, currentYear);
+    }
+    return years;
   }
 
   // --- App Key-Value Records ---

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parent_child_app/screens/about_app_screen.dart';
 
 import 'screens/splash_screen.dart';
 import 'screens/description_screen.dart';
@@ -12,10 +13,13 @@ import 'screens/blogs_screen.dart';
 import 'services/notification_service.dart';
 import 'screens/family_reports_screen.dart';
 
-void main() async{
+// Global ValueNotifier to handle dynamic theme changes between Light and Dark mode
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize notifications
+  // Initialize local notifications
   await NotificationService.instance.initialize();
 
   runApp(const ParentKidApp());
@@ -26,25 +30,39 @@ class ParentKidApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Gloria Family Journal',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        useMaterial3: true,
-      ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/description': (context) => const DescriptionScreen(),
-        '/family': (context) => const FamilyScreen(),
-        '/parent_dashboard': (context) => const ParentDashboardScreen(),
-        '/kid_dashboard': (context) => const KidDashboardScreen(),
-        '/activities': (context) => const ActivitiesScreen(),
-        '/qna': (context) => const QnAScreen(),
-        '/blogs': (context) => const BlogsScreen(),
-        '/family_reports': (context) => const FamilyReportsScreen(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, currentMode, child) {
+        return MaterialApp(
+          title: 'Gloria Family Journal',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            primarySwatch: Colors.indigo,
+            useMaterial3: true,
+            brightness: Brightness.light,
+          ),
+          darkTheme: ThemeData(
+            primarySwatch: Colors.indigo,
+            useMaterial3: true,
+            brightness: Brightness.dark,
+          ),
+          themeMode: currentMode,
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const SplashScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/description': (context) => const DescriptionScreen(),
+            '/family': (context) => const FamilyScreen(),
+            '/parent_dashboard': (context) => const ParentDashboardScreen(),
+            '/kid_dashboard': (context) => const KidDashboardScreen(),
+            '/activities': (context) => const ActivitiesScreen(),
+            '/qna': (context) => const QnAScreen(),
+            '/blogs': (context) => const BlogsScreen(),
+            '/family_reports': (context) => const FamilyReportsScreen(),
+            // Pass the global themeNotifier to AboutAppScreen for live dark mode toggling
+            '/about_app': (context) => AboutAppScreen(themeNotifier: themeNotifier),
+          },
+        );
       },
     );
   }
